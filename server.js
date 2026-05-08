@@ -2,8 +2,12 @@ const express = require('express');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
+
+const taskRoutes = require('./routes/tasks');
+
 const app = express();
 app.use(express.json());
+app.use('/api/tasks', taskRoutes);
 
 // Connexion MongoDB
 mongoose.connect(process.env.MONGO_URI)
