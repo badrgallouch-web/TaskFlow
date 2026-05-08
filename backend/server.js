@@ -1,29 +1,28 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const dotenv = require('dotenv');
-const authRoutes = require('./routes/authRoutes');
-const path = require('path');
-const authRoutes = require('./routes/authRoutes');
+const cors = require('cors');
 
-dotenv.config();
+const authRoutes = require('./routes/auth');
 
 const app = express();
+
+app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
 
 app.use('/api/auth', authRoutes);
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/login.html'));
-});
-});
+app.get('/', (req, res) => res.json({ message: 'TaskFlow API is running 🚀' }));
 
-// ⬇️ SEULEMENT CETTE LIGNE CHANGE ⬇️
-mongoose.connect('mongodb://mongodb:27017/taskflow')
-    .then(() => console.log('MongoDB connected'))
-    .catch(err => console.log('MongoDB error:', err));
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log('✅ MongoDB connecté');
+    app.listen(process.env.PORT, () =>
+      console.log(`✅ Serveur lancé sur le port ${process.env.PORT}`)
+    );
+  })
+  .catch((err) => {
+    console.error('❌ Erreur MongoDB :', err.message);
+    process.exit(1);
+  });
