@@ -1,7 +1,9 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const app = express();
+
 const projectRoutes = require('./routes/projectRoutes');
+const taskRoutes = require('./routes/taskRoutes');
 
 app.use(express.json());
 
@@ -15,6 +17,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/projects', projectRoutes);
+app.use('/api/tasks', taskRoutes);
 
 const PORT = 3000;
 app.listen(PORT, () => {
