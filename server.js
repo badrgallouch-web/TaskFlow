@@ -4,6 +4,7 @@ const app = express();
 
 const projectRoutes = require('./routes/projectRoutes');
 const taskRoutes = require('./routes/taskRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 
 app.use(express.json());
 
@@ -18,6 +19,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 const PORT = 3000;
 app.listen(PORT, () => {
