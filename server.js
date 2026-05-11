@@ -8,7 +8,7 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 
 app.use(express.json());
 
-// العودة للاتصال المحلي كما كان
+
 mongoose.connect('mongodb://127.0.0.1:27017/TaskFlowDB')
     .then(() => console.log("Connected to MongoDB successfully! ✅"))
     .catch((err) => console.log("MongoDB Connection Error: ❌", err));
