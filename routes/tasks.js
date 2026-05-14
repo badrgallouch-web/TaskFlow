@@ -21,10 +21,16 @@ router.patch('/:id/assign', async (req, res) => {
   }
 });
 
-// F4 — Voir les tâches assignées au membre connecté
+// F4 — Voir les tâches assignées au membre connecté filtré par projet
 router.get('/my-tasks/:userId', async (req, res) => {
   try {
-    const tasks = await Task.find({ assignedTo: req.params.userId })
+    const filter = { assignedTo: req.params.userId };
+    
+    if (req.query.projetId) {
+      filter.projet = req.query.projetId;
+    }
+    
+    const tasks = await Task.find(filter)
       .populate('assignedTo', 'nom email')
       .populate('projet', 'titre');
     
