@@ -1,34 +1,27 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
-
-const taskRoutes = require('./routes/tasks');
-const User = require('./models/User');
-
 const app = express();
-app.use(cors());
-app.use(express.json());
-app.use('/api/tasks', taskRoutes);
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connecté ✅'))
-  .catch(err => console.log('Erreur MongoDB :', err));
+const projectRoutes = require('./routes/projectRoutes');
+const taskRoutes = require('./routes/taskRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
+
+app.use(express.json());
+
+
+mongoose.connect('mongodb://127.0.0.1:27017/TaskFlowDB')
+    .then(() => console.log("Connected to MongoDB successfully! ✅"))
+    .catch((err) => console.log("MongoDB Connection Error: ❌", err));
 
 app.get('/', (req, res) => {
-  res.json({ message: 'TaskFlow API fonctionne ✅' });
+    res.send('TaskFlow API is running...');
 });
 
-app.get('/api/users', async (req, res) => {
-  try {
-    const users = await User.find({}, 'nom email');
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+app.use('/api/projects', projectRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
-const PORT = process.env.PORT || 5000;
+const PORT = 3000;
 app.listen(PORT, () => {
-  console.log(`Serveur lancé sur le port ${PORT} ✅`);
+    console.log("Server is live on port " + PORT);
 });
