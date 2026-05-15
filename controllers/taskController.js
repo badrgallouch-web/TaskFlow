@@ -2,8 +2,28 @@ const Task = require('../models/Task');
 
 exports.getAllTasks = async (req, res) => {
     try {
-        const tasks = await Task.find();
-        res.status(200).json(tasks);
+        const { statut, priorite, assignedTo, search, page = 1, limit = 10 } = req.query;
+        
+        const filter = {};
+        
+        // filtrage conditionnel
+        if (statut) filter.status = statut;
+        if (priorite) filter.priority = priorite;
+        if (assignedTo) filter.assignedTo = assignedTo;
+        if (search) {
+            filter.$or = [
+                { title: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const total = await Task.countDocuments(filter);
+        const totalPages = Math.ceil(total / limit);
+        const data = await Task.find(filter)
+            .skip((page - 1) * limit)
+            .limit(Number(limit));
+
+        res.status(200).json({ data, total, page: Number(page), totalPages });
     } catch (error) {
         res.status(500).json({ msg: error.message });
     }
