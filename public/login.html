@@ -7,6 +7,8 @@
         input { width: 100%; padding: 10px; margin: 10px 0; }
         button { width: 100%; padding: 10px; background: green; color: white; border: none; }
         .error { color: red; }
+        button:hover { background: darkgreen; }
+        button:active { background: rgb(64, 155, 64); }
     </style>
 </head>
 <body>
@@ -36,12 +38,11 @@
             const password = document.getElementById('password').value;
 
             try {
-                const response = await axios.post('http://localhost:5000/api/auth/login', {
+                const response = await axios.post('http://localhost:3000/api/auth/login', {
                     email, password
                 });
                 
                 if (response.data.success) {
-                    // Stocker le token dans localStorage (demandé par le PDF)
                     localStorage.setItem('token', response.data.token);
                     localStorage.setItem('user', JSON.stringify(response.data.user));
                     messageDiv.innerHTML = '<div class="success">Connexion réussie ! Redirection...</div>';

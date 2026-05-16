@@ -8,6 +8,8 @@
         button { width: 100%; padding: 10px; background: blue; color: white; border: none; }
         .error { color: red; }
         .success { color: green; }
+        button:hover { background: darkblue; }
+         button:active { background: rgb(43, 43, 172); }
     </style>
 </head>
 <body>
@@ -28,17 +30,18 @@
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const name = document.getElementById('name').value;
+            const fullName = document.getElementById('name').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
 
             try {
-                const response = await axios.post('http://localhost:5000/api/auth/register', {
-                    name, email, password
-                });
+                const response = await axios.post('http://localhost:3000/api/auth/register', {
+                    fullName,
+                    email,
+                    password
+        });
                 
                 if (response.data.success) {
-                    // Stocker le token dans localStorage (demandé par le PDF)
                     localStorage.setItem('token', response.data.token);
                     localStorage.setItem('user', JSON.stringify(response.data.user));
                     messageDiv.innerHTML = '<div class="success">Inscription réussie ! Redirection...</div>';

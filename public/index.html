@@ -66,6 +66,10 @@
             font-weight: bold;
             color: green;
         }
+
+        button:active {
+            background-color: #2a5d9f;
+        }
     </style>
 </head>
 <body>
@@ -73,10 +77,8 @@
     <div class="container">
         <h1>Assigner une tâche</h1>
 
-        <label>Choisir un membre :</label>
-        <select id="membreSelect">
-            <option value="">-- Choisir --</option>
-        </select>
+        <label>ID du membre :</label>
+        <input type="text" id="userId" placeholder="ID du membre" />
 
         <label>ID de la tâche :</label>
         <input type="text" id="taskId" placeholder="ID de la tâche" />
@@ -88,38 +90,29 @@
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
-        async function chargerMembres() {
-            try {
-                const res = await axios.get('http://localhost:5000/api/users');
-                const membres = res.data;
-                const select = document.getElementById('membreSelect');
-                membres.forEach(membre => {
-                    const option = document.createElement('option');
-                    option.value = membre._id;
-                    option.text = membre.nom;
-                    select.appendChild(option);
-                });
-            } catch (err) {
-                console.log('Erreur chargement membres', err);
-            }
-        }
 
         async function assignerTache() {
-            const userId = document.getElementById('membreSelect').value;
+            const userId = document.getElementById('userId').value;
             const taskId = document.getElementById('taskId').value;
+            const token = localStorage.getItem('token');
 
             try {
                 const res = await axios.patch(
-                    `http://localhost:5000/api/tasks/${taskId}/assign`,
-                    { userId }
+                    `http://localhost:3000/api/tasks/${taskId}/assign`,
+                    { userId },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
                 );
+
                 document.getElementById('message').innerText = 'Tâche assignée avec succès ✅';
             } catch (err) {
                 document.getElementById('message').innerText = 'Erreur ❌';
-            }
+            }  
         }
 
-        chargerMembres();
     </script>
 
 </body>
