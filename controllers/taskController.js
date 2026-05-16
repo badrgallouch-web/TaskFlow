@@ -74,17 +74,24 @@ exports.deleteTask = async (req, res) => {
 
 exports.updateTaskStatus = async (req, res) => {
     try {
-        const updatedTask = await Task.findByIdAndUpdate(
-            req.params.id,
-            { status: req.body.status },
-            { new: true, runValidators: true }
-        );
+        const task = await Task.findById(req.params.id);
 
-        if (!updatedTask) {
+        if (!task) {
             return res.status(404).json({ msg: "Task not found" });
         }
 
+        if (task.assignedTo && task.assignedTo.toString() !== req.user.id) {
+            return res.status(403).json({
+                msg: "You can only update tasks assigned to you"
+            });
+        }
+
+        task.status = req.body.status;
+
+        const updatedTask = await task.save();
+
         res.status(200).json(updatedTask);
+
     } catch (error) {
         res.status(400).json({ msg: error.message });
     }
