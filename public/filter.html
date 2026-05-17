@@ -110,23 +110,6 @@
     <script>
         let currentPage = 1;
 
-        // charger les membres dans le select
-        async function chargerMembres() {
-            try {
-                const res = await axios.get('http://localhost:3000/api/users');
-                const membres = res.data;
-                const select = document.getElementById('assignedTo');
-                membres.forEach(membre => {
-                    const option = document.createElement('option');
-                    option.value = membre._id;
-                    option.text = membre.fullName;
-                    select.appendChild(option);
-                });
-            } catch (err) {
-                console.log('Erreur chargement membres', err);
-            }
-        }
-
         async function chargerTaches(page = 1) {
             currentPage = page;
             const search = document.getElementById('search').value;
@@ -165,7 +148,6 @@
             chargerTaches(currentPage + direction);
         }
 
-        chargerMembres();
         chargerTaches(1);
     </script>
 </body>
