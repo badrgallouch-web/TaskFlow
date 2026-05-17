@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>TaskFlow - Filtrage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            padding: 30px;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: auto;
+        }
+        h1 { color: #333; text-align: center; }
+        .filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        select, input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            flex: 1;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background-color: #357abd; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th { background-color: #4a90e2; color: white; }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .pagination button {
+            padding: 8px 15px;
+        }
+        .pagination button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Liste des tâches</h1>
+
+        <div class="filters">
+            <input type="text" id="search" placeholder="Rechercher par mot-clé..." />
+            <select id="statut">
+                <option value="">-- Statut --</option>
+                <option value="à faire">À faire</option>
+                <option value="en cours">En cours</option>
+                <option value="terminé">Terminé</option>
+            </select>
+            <select id="priorite">
+                <option value="">-- Priorité --</option>
+                <option value="basse">Basse</option>
+                <option value="moyenne">Moyenne</option>
+                <option value="haute">Haute</option>
+            </select>
+            <select id="assignedTo">
+                <option value="">-- Membre assigné --</option>
+            </select>
+            <button onclick="chargerTaches(1)">Filtrer</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Titre</th>
+                    <th>Statut</th>
+                    <th>Priorité</th>
+                </tr>
+            </thead>
+            <tbody id="tasksList"></tbody>
+        </table>
+
+        <div class="pagination">
+            <button id="btnPrev" onclick="changerPage(-1)" disabled>◀ Précédent</button>
+            <span id="pageInfo"></span>
+            <button id="btnNext" onclick="changerPage(1)">Suivant ▶</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        let currentPage = 1;
+
+        // charger les membres dans le select
+        async function chargerMembres() {
+            try {
+                const res = await axios.get('http://localhost:3000/api/users');
+                const membres = res.data;
+                const select = document.getElementById('assignedTo');
+                membres.forEach(membre => {
+                    const option = document.createElement('option');
+                    option.value = membre._id;
+                    option.text = membre.nom;
+                    select.appendChild(option);
+                });
+            } catch (err) {
+                console.log('Erreur chargement membres', err);
+            }
+        }
+
+        async function chargerTaches(page = 1) {
+            currentPage = page;
+            const search = document.getElementById('search').value;
+            const statut = document.getElementById('statut').value;
+            const priorite = document.getElementById('priorite').value;
+            const assignedTo = document.getElementById('assignedTo').value;
+
+            try {
+                const res = await axios.get('http://localhost:3000/api/tasks', {
+                    params: { search, statut, priorite, assignedTo, page, limit: 5 }
+                });
+
+                const { data, total, totalPages } = res.data;
+                const tbody = document.getElementById('tasksList');
+                tbody.innerHTML = '';
+
+                data.forEach(task => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${task.title}</td>
+                            <td>${task.status}</td>
+                            <td>${task.priority}</td>
+                        </tr>
+                    `;
+                });
+
+                document.getElementById('pageInfo').innerText = `Page ${page} / ${totalPages}`;
+                document.getElementById('btnPrev').disabled = page <= 1;
+                document.getElementById('btnNext').disabled = page >= totalPages;
+
+            } catch (err) {
+                console.log('Erreur', err);
+            }
+        }
+
+        function changerPage(direction) {
+            chargerTaches(currentPage + direction);
+        }
+
+        chargerMembres();
+        chargerTaches(1);
+    </script>
+</body>
+</html>
