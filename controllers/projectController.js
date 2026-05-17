@@ -1,30 +1,25 @@
 const Project = require('../models/Project');
+const { logActivity } = require('../services/activityLogger');
 
 exports.getProjects = async (req, res) => {
     try {
         const projects = await Project.find();
         res.status(200).json(projects);
     } catch (err) {
-        res.status(500).json({ error: "Could not fetch projects from database" });
+        res.status(500).json({ error: 'Could not fetch projects from database' });
     }
 };
-
 
 exports.addProject = async (req, res) => {
     try {
         const { projectName, description, endDate } = req.body;
-        const newProject = new Project({
-            projectName,
-            description,
-            endDate
-        });
+        const newProject = new Project({ projectName, description, endDate });
         const savedProject = await newProject.save();
         res.status(201).json(savedProject);
     } catch (err) {
-        res.status(400).json({ error: "Failed to create project" });
+        res.status(400).json({ error: 'Failed to create project' });
     }
 };
-
 
 exports.updateProject = async (req, res) => {
     try {
@@ -33,18 +28,30 @@ exports.updateProject = async (req, res) => {
             req.body,
             { new: true }
         );
+
+        if (!updatedProject) {
+            return res.status(404).json({ error: 'Project not found' });
+        }
+
+        // 🔔 Log activity
+        await logActivity({
+            actionType: 'project_updated',
+            projectId: updatedProject._id,
+            description: `Projet "${updatedProject.projectName}" a été modifié`,
+            metadata: { changes: req.body }
+        });
+
         res.status(200).json(updatedProject);
     } catch (err) {
-        res.status(400).json({ error: "Update failed" });
+        res.status(400).json({ error: 'Update failed' });
     }
 };
-
 
 exports.removeProject = async (req, res) => {
     try {
         await Project.findByIdAndDelete(req.params.id);
-        res.status(200).json({ message: "Project deleted successfully" });
+        res.status(200).json({ message: 'Project deleted successfully' });
     } catch (err) {
-        res.status(500).json({ error: "Delete failed" });
+        res.status(500).json({ error: 'Delete failed' });
     }
 };
