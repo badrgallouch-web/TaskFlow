@@ -1,4 +1,6 @@
 const Task = require('../models/Task');
+const { logActivity } = require('../services/activityLogger');
+const { createNotification } = require('../services/notificationLogger');
 
 exports.getAllTasks = async (req, res) => {
     try {
@@ -12,11 +14,7 @@ exports.getAllTasks = async (req, res) => {
 exports.getTaskById = async (req, res) => {
     try {
         const task = await Task.findById(req.params.id);
-
-        if (!task) {
-            return res.status(404).json({ msg: "Task not found" });
-        }
-
+        if (!task) return res.status(404).json({ msg: 'Task not found' });
         res.status(200).json(task);
     } catch (error) {
         res.status(500).json({ msg: error.message });
@@ -27,10 +25,20 @@ exports.createTask = async (req, res) => {
     try {
         const { title, priority, status, projectId } = req.body;
 
-        const newTask = await Task.create({
-            title,
-            priority,
-            status,
+        const newTask = await Task.create({ title, priority, status, projectId });
+
+        // Log activité
+        await logActivity({
+            actionType: 'task_created',
+            projectId,
+            description: `Tâche "${title}" a été créée avec le statut "${status}"`,
+            metadata: { taskId: newTask._id, title, priority, status }
+        });
+
+        //  Notification
+        await createNotification({
+            type: 'task_assigned',
+            message: `La tâche "${title}" a été créée dans le projet`,
             projectId
         });
 
@@ -48,9 +56,14 @@ exports.updateTask = async (req, res) => {
             { new: true, runValidators: true }
         );
 
-        if (!updatedTask) {
-            return res.status(404).json({ msg: "Task not found" });
-        }
+        if (!updatedTask) return res.status(404).json({ msg: 'Task not found' });
+
+        await logActivity({
+            actionType: 'task_status_changed',
+            projectId: updatedTask.projectId,
+            description: `Tâche "${updatedTask.title}" a été modifiée`,
+            metadata: { taskId: updatedTask._id, changes: req.body }
+        });
 
         res.status(200).json(updatedTask);
     } catch (error) {
@@ -62,11 +75,16 @@ exports.deleteTask = async (req, res) => {
     try {
         const deletedTask = await Task.findByIdAndDelete(req.params.id);
 
-        if (!deletedTask) {
-            return res.status(404).json({ msg: "Task not found" });
-        }
+        if (!deletedTask) return res.status(404).json({ msg: 'Task not found' });
 
-        res.status(200).json({ msg: "Task deleted" });
+        await logActivity({
+            actionType: 'task_deleted',
+            projectId: deletedTask.projectId,
+            description: `Tâche "${deletedTask.title}" a été supprimée`,
+            metadata: { taskId: deletedTask._id, title: deletedTask.title }
+        });
+
+        res.status(200).json({ msg: 'Task deleted' });
     } catch (error) {
         res.status(500).json({ msg: error.message });
     }
@@ -74,15 +92,31 @@ exports.deleteTask = async (req, res) => {
 
 exports.updateTaskStatus = async (req, res) => {
     try {
+        const oldTask = await Task.findById(req.params.id);
+        if (!oldTask) return res.status(404).json({ msg: 'Task not found' });
+
+        const oldStatus = oldTask.status;
+
         const updatedTask = await Task.findByIdAndUpdate(
             req.params.id,
             { status: req.body.status },
             { new: true, runValidators: true }
         );
 
-        if (!updatedTask) {
-            return res.status(404).json({ msg: "Task not found" });
-        }
+        // Log activité
+        await logActivity({
+            actionType: 'task_status_changed',
+            projectId: updatedTask.projectId,
+            description: `Statut de "${updatedTask.title}" changé de "${oldStatus}" à "${req.body.status}"`,
+            metadata: { taskId: updatedTask._id, oldStatus, newStatus: req.body.status }
+        });
+
+        //  Notification
+        await createNotification({
+            type: 'status_changed',
+            message: `Statut de "${updatedTask.title}" changé de "${oldStatus}" à "${req.body.status}"`,
+            projectId: updatedTask.projectId
+        });
 
         res.status(200).json(updatedTask);
     } catch (error) {
