@@ -89,23 +89,23 @@
 
     <h2>Créer une tâche</h2>
 
+    <p id="projectInfo"></p>
+
     <input type="text" id="title" placeholder="Titre de la tâche">
 
     <select id="priority">
         <option value="">Choisir priorité</option>
-        <option value="low">Low</option>
-        <option value="medium">Medium</option>
-        <option value="high">High</option>
+        <option value="low">Basse</option>
+        <option value="medium">Moyenne</option>
+        <option value="high">Haute</option>
     </select>
 
     <select id="status">
         <option value="">Choisir statut</option>
-        <option value="todo">Todo</option>
-        <option value="doing">Doing</option>
-        <option value="done">Done</option>
+        <option value="todo">À faire</option>
+        <option value="doing">En cours</option>
+        <option value="done">Terminé</option>
     </select>
-
-    <input type="text" id="projectId" placeholder="ID du projet">
 
     <button class="create-btn" onclick="createTask()">
         Créer tâche
@@ -123,6 +123,9 @@
 
 <script>
 
+    document.getElementById('projectInfo').innerText =
+    'Projet actuel : ' + (localStorage.getItem('currentProjectName') || '');
+
     const token = localStorage.getItem('token');
 
     if (!token) {
@@ -134,7 +137,7 @@
         const title = document.getElementById('title').value;
         const priority = document.getElementById('priority').value;
         const status = document.getElementById('status').value;
-        const projectId = document.getElementById('projectId').value;
+        const projectId = localStorage.getItem('currentProjectId');
 
         try {
 

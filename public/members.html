@@ -79,8 +79,6 @@
 
     <h1>Gestion des membres</h1>
 
-    <input type="text" id="projectId" placeholder="ID du projet">
-
     <h2>Inviter un membre</h2>
 
     <input type="email" id="email" placeholder="Email du membre">
@@ -113,7 +111,7 @@
 
     async function inviteMember() {
 
-        const projectId = document.getElementById('projectId').value;
+        const projectId = localStorage.getItem('currentProjectId');
         const email = document.getElementById('email').value;
 
         try {
@@ -146,7 +144,7 @@
 
     async function removeMember() {
 
-        const projectId = document.getElementById('projectId').value;
+        const projectId = localStorage.getItem('currentProjectId');
         const userId = document.getElementById('userId').value;
 
         try {
