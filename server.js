@@ -9,6 +9,7 @@ const activityRoutes = require('./routes/activityRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 
 app.use(express.json());
+app.use(express.static('public'));
 
 mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/TaskFlowDB')
     .then(() => console.log('Connected to MongoDB successfully! ✅'))
