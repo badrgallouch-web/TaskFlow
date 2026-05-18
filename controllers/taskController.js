@@ -92,26 +92,36 @@ exports.deleteTask = async (req, res) => {
 
 exports.updateTaskStatus = async (req, res) => {
     try {
-        const oldTask = await Task.findById(req.params.id);
-        if (!oldTask) return res.status(404).json({ msg: 'Task not found' });
+        const task = await Task.findById(req.params.id);
 
-        const oldStatus = oldTask.status;
+        if (!task) {
+            return res.status(404).json({ msg: 'Task not found' });
+        }
 
-        const updatedTask = await Task.findByIdAndUpdate(
-            req.params.id,
-            { status: req.body.status },
-            { new: true, runValidators: true }
-        );
+        const oldStatus = task.status;
 
-        // Log activité
+        if (task.assignedTo && task.assignedTo.toString() !== req.user.id) {
+            return res.status(403).json({
+                msg: 'You can only update tasks assigned to you'
+            });
+        }
+
+        task.status = req.body.status;
+
+        const updatedTask = await task.save();
+
         await logActivity({
             actionType: 'task_status_changed',
             projectId: updatedTask.projectId,
+            userId: req.user?.id,
             description: `Statut de "${updatedTask.title}" changé de "${oldStatus}" à "${req.body.status}"`,
-            metadata: { taskId: updatedTask._id, oldStatus, newStatus: req.body.status }
+            metadata: {
+                taskId: updatedTask._id,
+                oldStatus,
+                newStatus: req.body.status
+            }
         });
 
-        //  Notification
         await createNotification({
             type: 'status_changed',
             message: `Statut de "${updatedTask.title}" changé de "${oldStatus}" à "${req.body.status}"`,
@@ -119,6 +129,7 @@ exports.updateTaskStatus = async (req, res) => {
         });
 
         res.status(200).json(updatedTask);
+
     } catch (error) {
         res.status(400).json({ msg: error.message });
     }

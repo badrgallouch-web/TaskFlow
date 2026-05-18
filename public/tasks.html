@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestion des tâches</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: white;
+            margin-right: 5px;
+        }
+
+        .create-btn {
+            background-color: #4a90e2;
+            width: 100%;
+        }
+        .create-btn:hover {
+            background-color: #357abd;
+        }
+        .create-btn:active {
+            background-color: #2a5d9f;
+        }
+
+        .delete-btn {
+            background-color: #e74c3c;
+        }
+
+        .status-btn {
+            background-color: #27ae60;
+        }
+
+        .task {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        #message {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Gestion des tâches</h1>
+
+    <h2>Créer une tâche</h2>
+
+    <input type="text" id="title" placeholder="Titre de la tâche">
+
+    <select id="priority">
+        <option value="">Choisir priorité</option>
+        <option value="low">Low</option>
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+    </select>
+
+    <select id="status">
+        <option value="">Choisir statut</option>
+        <option value="todo">Todo</option>
+        <option value="doing">Doing</option>
+        <option value="done">Done</option>
+    </select>
+
+    <input type="text" id="projectId" placeholder="ID du projet">
+
+    <button class="create-btn" onclick="createTask()">
+        Créer tâche
+    </button>
+
+    <p id="message"></p>
+
+    <h2>Liste des tâches</h2>
+
+    <div id="tasksContainer"></div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<script>
+
+    const token = localStorage.getItem('token');
+
+    if (!token) {
+        window.location.href = 'login.html';
+    }
+
+    async function createTask() {
+
+        const title = document.getElementById('title').value;
+        const priority = document.getElementById('priority').value;
+        const status = document.getElementById('status').value;
+        const projectId = document.getElementById('projectId').value;
+
+        try {
+
+            await axios.post(
+
+                'http://localhost:3000/api/tasks',
+
+                {
+                    title,
+                    priority,
+                    status,
+                    projectId
+                },
+
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+
+            );
+
+            document.getElementById('message').innerText =
+                'Tâche créée avec succès ✅';
+
+            loadTasks();
+
+        } catch (error) {
+
+            document.getElementById('message').innerText =
+                error.response?.data?.msg || 'Erreur ❌';
+
+        }
+
+    }
+
+    async function loadTasks() {
+
+        try {
+
+            const response = await axios.get(
+
+                'http://localhost:3000/api/tasks',
+
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+
+            );
+
+            const tasksContainer = document.getElementById('tasksContainer');
+
+            tasksContainer.innerHTML = '';
+
+            response.data.forEach(task => {
+
+                tasksContainer.innerHTML += `
+
+                    <div class="task">
+
+                        <h3>${task.title}</h3>
+
+                        <p><strong>Priority:</strong> ${task.priority}</p>
+
+                        <p><strong>Status:</strong> ${task.status}</p>
+
+                        <p><strong>Project ID:</strong> ${task.projectId}</p>
+
+                        <button 
+                            class="status-btn"
+                            onclick="updateStatus('${task._id}')"
+                        >
+                            Mettre done
+                        </button>
+
+                        <button 
+                            class="delete-btn"
+                            onclick="deleteTask('${task._id}')"
+                        >
+                            Supprimer
+                        </button>
+
+                    </div>
+
+                `;
+
+            });
+
+        } catch (error) {
+
+            console.log(error);
+
+        }
+
+    }
+
+    async function updateStatus(taskId) {
+
+        try {
+
+            await axios.patch(
+
+                `http://localhost:3000/api/tasks/${taskId}/status`,
+
+                {
+                    status: 'done'
+                },
+
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+
+            );
+
+            loadTasks();
+
+        } catch (error) {
+
+            console.log(error);
+
+        }
+
+    }
+
+    async function deleteTask(taskId) {
+
+        try {
+
+            await axios.delete(
+
+                `http://localhost:3000/api/tasks/${taskId}`,
+
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+
+            );
+
+            loadTasks();
+
+        } catch (error) {
+
+            console.log(error);
+
+        }
+
+    }
+
+    loadTasks();
+
+</script>
+
+</body>
+</html>

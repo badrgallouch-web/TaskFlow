@@ -85,9 +85,6 @@
                 <option value="moyenne">Moyenne</option>
                 <option value="haute">Haute</option>
             </select>
-            <select id="assignedTo">
-                <option value="">-- Membre assigné --</option>
-            </select>
             <button onclick="chargerTaches(1)">Filtrer</button>
         </div>
 
@@ -113,33 +110,15 @@
     <script>
         let currentPage = 1;
 
-        // charger les membres dans le select
-        async function chargerMembres() {
-            try {
-                const res = await axios.get('http://localhost:3000/api/users');
-                const membres = res.data;
-                const select = document.getElementById('assignedTo');
-                membres.forEach(membre => {
-                    const option = document.createElement('option');
-                    option.value = membre._id;
-                    option.text = membre.nom;
-                    select.appendChild(option);
-                });
-            } catch (err) {
-                console.log('Erreur chargement membres', err);
-            }
-        }
-
         async function chargerTaches(page = 1) {
             currentPage = page;
             const search = document.getElementById('search').value;
             const statut = document.getElementById('statut').value;
             const priorite = document.getElementById('priorite').value;
-            const assignedTo = document.getElementById('assignedTo').value;
 
             try {
                 const res = await axios.get('http://localhost:3000/api/tasks', {
-                    params: { search, statut, priorite, assignedTo, page, limit: 5 }
+                    params: { search, statut, priorite, page, limit: 5 }
                 });
 
                 const { data, total, totalPages } = res.data;
@@ -169,7 +148,6 @@
             chargerTaches(currentPage + direction);
         }
 
-        chargerMembres();
         chargerTaches(1);
     </script>
 </body>

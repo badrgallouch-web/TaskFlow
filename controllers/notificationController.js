@@ -8,7 +8,7 @@ exports.getNotifications = async (req, res) => {
 
         res.status(200).json({
             message: 'Notifications retrieved successfully',
-            unreadCount: notifications.filter(n => !n.isRead).length,
+            unreadCount: notifications.filter(n => !n.read).length,
             data: notifications
         });
     } catch (error) {
@@ -21,7 +21,7 @@ exports.markAsRead = async (req, res) => {
     try {
         const notification = await Notification.findByIdAndUpdate(
             req.params.id,
-            { isRead: true },
+            { read: true },
             { new: true }
         );
 

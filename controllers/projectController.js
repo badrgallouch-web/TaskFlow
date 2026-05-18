@@ -13,11 +13,22 @@ exports.getProjects = async (req, res) => {
 exports.addProject = async (req, res) => {
     try {
         const { projectName, description, endDate } = req.body;
-        const newProject = new Project({ projectName, description, endDate });
+
+        const newProject = new Project({
+            projectName,
+            description,
+            endDate,
+            owner: req.user.id
+        });
+
         const savedProject = await newProject.save();
+
         res.status(201).json(savedProject);
+
     } catch (err) {
-        res.status(400).json({ error: 'Failed to create project' });
+        res.status(400).json({
+            error: 'Failed to create project'
+        });
     }
 };
 
@@ -33,10 +44,10 @@ exports.updateProject = async (req, res) => {
             return res.status(404).json({ error: 'Project not found' });
         }
 
-        // 🔔 Log activity
         await logActivity({
             actionType: 'project_updated',
             projectId: updatedProject._id,
+            userId: req.user?.id,
             description: `Projet "${updatedProject.projectName}" a été modifié`,
             metadata: { changes: req.body }
         });
