@@ -36,11 +36,11 @@ async function markAsRead(notificationId) {
 
         // Mise à jour locale sans recharger la page
         notifications = notifications.map(n =>
-            n._id === notificationId ? { ...n, isRead: true } : n
+            n._id === notificationId ?{ ...n, read: true } : n
         );
 
         // Recalcule le badge en temps réel
-        const unreadCount = notifications.filter(n => !n.isRead).length;
+        const unreadCount = notifications.filter(n => !n.read).length;
         updateBadge(unreadCount);
 
         // Archive dans localStorage
@@ -81,11 +81,11 @@ function renderNotifications(notifs) {
 
     notifs.forEach(notif => {
         const item = document.createElement('div');
-        item.className = `notification-item ${notif.isRead ? 'read' : 'unread'}`;
+        item.className = `notification-item ${notif.read ? 'read' : 'unread'}`;
         item.innerHTML = `
             <span>${notif.message}</span>
             <small>${timeAgo(notif.createdAt)}</small>
-            ${!notif.isRead
+            ${!notif.read
                 ? `<button onclick="markAsRead('${notif._id}')">Marquer comme lu</button>`
                 : '<em>Lu</em>'
             }
@@ -101,7 +101,7 @@ function archiveToLocalStorage(notificationId) {
     // Trouve la notification dans le tableau mémoire
     const notif = notifications.find(n => n._id === notificationId);
     if (notif && !archived.find(n => n._id === notificationId)) {
-        archived.push({ ...notif, isRead: true, archivedAt: new Date().toISOString() });
+        archived.push({ ...notif, read: true, archivedAt: new Date().toISOString() });
         localStorage.setItem('archivedNotifications', JSON.stringify(archived));
     }
 }

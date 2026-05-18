@@ -11,7 +11,16 @@ const Activity = require('../models/Activity');
  */
 const logActivity = async ({ actionType, projectId, userId = 'system', description, metadata = {} }) => {
     try {
-        await Activity.create({ actionType, projectId, userId, description, metadata });
+        await Activity.create({
+            type: actionType,
+            project: projectId,
+            user: userId,
+            meta: {
+                description,
+                ...metadata
+            }
+        });
+        
     } catch (err) {
         // Ne pas bloquer l'action principale si le log échoue
         console.error('Failed to log activity:', err.message);

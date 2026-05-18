@@ -1,5 +1,4 @@
 const Notification = require('../models/Notification');
-
 /**
  * Crée une notification en base de données
  * @param {Object} options
@@ -10,7 +9,12 @@ const Notification = require('../models/Notification');
  */
 const createNotification = async ({ userId = 'system', type, message, projectId }) => {
     try {
-        await Notification.create({ userId, type, message, projectId });
+        await Notification.create({
+            user: userId,
+            project: projectId,
+            type,
+            message
+        });
     } catch (err) {
         console.error('Failed to create notification:', err.message);
     }

@@ -4,21 +4,23 @@ const router = express.Router();
 
 const taskController = require('../controllers/taskController');
 
+const protect = require('../middlewares/authMiddleware');
+
 const {
     validateTask,
     validateStatus
 } = require('../middlewares/validateTask');
 
-router.get('/', taskController.getAllTasks);
+router.get('/', protect, taskController.getAllTasks);
 
-router.post('/', validateTask, taskController.createTask);
+router.post('/', protect, validateTask, taskController.createTask);
 
-router.get('/:id', taskController.getTaskById);
+router.get('/:id', protect, taskController.getTaskById);
 
-router.put('/:id', validateTask, taskController.updateTask);
+router.put('/:id', protect, validateTask, taskController.updateTask);
 
-router.delete('/:id', taskController.deleteTask);
+router.delete('/:id', protect, taskController.deleteTask);
 
-router.patch('/:id/status', validateStatus, taskController.updateTaskStatus);
+router.patch('/:id/status', protect, validateStatus, taskController.updateTaskStatus);
 
 module.exports = router;
