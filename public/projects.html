@@ -1,0 +1,133 @@
+<file path="public/projects.html">
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>TaskFlow - Projets</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f6f8; padding: 30px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2 { text-align: center; color: #333; }
+        input, textarea { width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; }
+        button { padding: 10px 20px; background: #4a90e2; color: white; border: none; border-radius: 6px; cursor: pointer; margin-right: 8px; }
+        button.danger { background: #e74c3c; }
+        button.warning { background: #f39c12; }
+        .project-card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .project-actions { margin-top: 10px; }
+        #message { text-align: center; margin-top: 15px; font-weight: bold; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Créer un projet</h1>
+        <input type="text" id="projectName" placeholder="Nom du projet">
+        <textarea id="description" placeholder="Description"></textarea>
+        <input type="date" id="endDate">
+        <button onclick="createProject()">Créer projet</button>
+
+        <h2>Mes projets</h2>
+        <div id="projectsList">Chargement...</div>
+        <p id="message"></p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = 'login.html';
+        axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
+
+        async function createProject() {
+            const projectName = document.getElementById('projectName').value.trim();
+            const description = document.getElementById('description').value.trim();
+            const endDate = document.getElementById('endDate').value;
+            const msg = document.getElementById('message');
+
+            if (!projectName) {
+                msg.className = 'error';
+                msg.innerText = 'Nom du projet requis ❌';
+                return;
+            }
+
+            try {
+                const res = await axios.post('/api/projects', { projectName, description, endDate });
+                msg.className = 'success';
+                msg.innerText = 'Projet créé ✅';
+                document.getElementById('projectName').value = '';
+                document.getElementById('description').value = '';
+                document.getElementById('endDate').value = '';
+                loadProjects();
+            } catch (err) {
+                msg.className = 'error';
+                msg.innerText = err.response?.data?.error || 'Erreur ❌';
+            }
+        }
+
+        async function loadProjects() {
+            try {
+                const res = await axios.get('/api/projects');
+                const projects = res.data.data || res.data;
+                const container = document.getElementById('projectsList');
+
+                if (projects.length === 0) {
+                    container.innerHTML = '<p>Aucun projet. Créez-en un !</p>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                projects.forEach(p => {
+                    container.innerHTML += `
+                        <div class="project-card">
+                            <h3>${p.projectName}</h3>
+                            <p>${p.description || ''}</p>
+                            <p>Statut: ${p.status} | Créé le: ${new Date(p.startDate).toLocaleDateString()}</p>
+                            <div class="project-actions">
+                                <button onclick="selectProject('${p._id}', '${p.projectName}')">Choisir ce projet</button>
+                                <button class="warning" onclick="archiveProject('${p._id}')">Archiver</button>
+                                <button class="danger" onclick="deleteProject('${p._id}')">Supprimer</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (err) {
+                document.getElementById('projectsList').innerHTML = '<p>Erreur chargement</p>';
+            }
+        }
+
+        function selectProject(id, name) {
+            localStorage.setItem('currentProjectId', id);
+            localStorage.setItem('currentProjectName', name);
+            document.getElementById('message').innerHTML = '<span class="success">Projet sélectionné : ' + name + ' ✅</span>';
+            setTimeout(() => {
+                window.location.href = 'dashboard.html';
+            }, 1000);
+        }
+
+        async function archiveProject(id) {
+            try {
+                await axios.put(`/api/projects/${id}`, { status: 'archivé' });
+                loadProjects();
+                document.getElementById('message').innerHTML = '<span class="success">Projet archivé</span>';
+            } catch (err) {
+                alert('Erreur');
+            }
+        }
+
+        async function deleteProject(id) {
+            if (!confirm('Supprimer définitivement ce projet ?')) return;
+            try {
+                await axios.delete(`/api/projects/${id}`);
+                loadProjects();
+                document.getElementById('message').innerHTML = '<span class="success">Projet supprimé</span>';
+            } catch (err) {
+                alert('Erreur');
+            }
+        }
+
+        loadProjects();
+    </script>
+    <a href="activity.html"><button>📜 Activités</button></a>
+</body>
+</html>
+</file>

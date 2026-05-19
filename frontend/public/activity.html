@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>TaskFlow - Activités du projet</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            padding: 30px;
+            max-width: 800px;
+            margin: auto;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 25px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .project-name {
+            text-align: center;
+            font-size: 18px;
+            color: #4a90e2;
+            margin-bottom: 20px;
+        }
+        .activity-list {
+            margin-top: 20px;
+        }
+        .activity-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .activity-message {
+            font-size: 14px;
+            color: #333;
+        }
+        .activity-time {
+            font-size: 12px;
+            color: #999;
+            white-space: nowrap;
+            margin-left: 15px;
+        }
+        .back-btn {
+            background: #4a90e2;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            display: inline-block;
+            text-decoration: none;
+        }
+        .back-btn:hover {
+            background: #357abd;
+        }
+        .empty {
+            text-align: center;
+            color: #888;
+            padding: 20px;
+        }
+        .error {
+            color: red;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="dashboard.html" class="back-btn">⬅ Retour au tableau de bord</a>
+        <h1>📋 Historique des activités</h1>
+        <div class="project-name" id="projectName">Chargement du projet...</div>
+        <div class="activity-list" id="activityList">
+            <div class="empty">Chargement des activités...</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        const projectId = localStorage.getItem('currentProjectId');
+
+        if (!token) window.location.href = 'login.html';
+        if (!projectId) {
+            alert('Aucun projet sélectionné. Veuillez d\'abord choisir un projet.');
+            window.location.href = 'projects.html';
+        }
+
+        axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
+
+        // جلب اسم المشروع لعرضه في الرأس
+        async function loadProjectName() {
+            try {
+                const res = await axios.get(`/api/projects/${projectId}`);
+                document.getElementById('projectName').innerText = `Projet : ${res.data.projectName}`;
+            } catch (err) {
+                document.getElementById('projectName').innerText = 'Projet inconnu';
+            }
+        }
+
+        // تحويل التوقيت إلى "منذ ..."
+        function timeAgo(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffInSeconds = Math.floor((now - date) / 1000);
+            if (diffInSeconds < 60) return `il y a ${diffInSeconds} secondes`;
+            if (diffInSeconds < 3600) return `il y a ${Math.floor(diffInSeconds / 60)} minutes`;
+            if (diffInSeconds < 86400) return `il y a ${Math.floor(diffInSeconds / 3600)} heures`;
+            return `il y a ${Math.floor(diffInSeconds / 86400)} jours`;
+        }
+
+        // ترجمة نوع النشاط إلى رسالة مفهومة
+        function formatActivityMessage(activity) {
+            const user = activity.user?.fullName || 'Un utilisateur';
+            const meta = activity.meta || {};
+            const type = activity.type;
+
+            switch (type) {
+                case 'task_created':
+                    return `${user} a créé la tâche "${meta.title || 'sans titre'}"`;
+                case 'task_deleted':
+                    return `${user} a supprimé une tâche`;
+                case 'task_updated':
+                    return `${user} a modifié une tâche`;
+                case 'task_status_changed':
+                    return `${user} a changé le statut de "${meta.title || 'une tâche'}" de "${meta.oldStatus}" à "${meta.newStatus}"`;
+                case 'member_added':
+                    return `${user} a ajouté un membre au projet`;
+                case 'member_removed':
+                    return `${user} a retiré un membre du projet`;
+                case 'project_updated':
+                    return `${user} a modifié le projet`;
+                default:
+                    return activity.meta?.description || `${user} a effectué une action (${type})`;
+            }
+        }
+
+        async function loadActivities() {
+            const container = document.getElementById('activityList');
+            try {
+                const res = await axios.get(`/api/projects/${projectId}/activities`);
+                const activities = res.data.data || [];
+
+                if (activities.length === 0) {
+                    container.innerHTML = '<div class="empty">Aucune activité enregistrée pour ce projet.</div>';
+                    return;
+                }
+
+                let html = '';
+                for (const act of activities) {
+                    const message = formatActivityMessage(act);
+                    const time = timeAgo(act.createdAt);
+                    html += `
+                        <div class="activity-item">
+                            <span class="activity-message">${escapeHtml(message)}</span>
+                            <span class="activity-time">${time}</span>
+                        </div>
+                    `;
+                }
+                container.innerHTML = html;
+            } catch (err) {
+                console.error(err);
+                let errorMsg = "Impossible de charger les activités.";
+                if (err.response?.status === 404) errorMsg = "Projet introuvable.";
+                else if (err.response?.status === 403) errorMsg = "Accès refusé à ce projet.";
+                container.innerHTML = `<div class="error">❌ ${errorMsg}</div>`;
+            }
+        }
+
+        // Échappement simple
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        // Chargement
+        loadProjectName();
+        loadActivities();
+    </script>
+</body>
+</html>

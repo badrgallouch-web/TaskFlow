@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <title>TaskFlow - Dashboard</title>
+    <style>
+        body { font-family: Arial; max-width: 1000px; margin: 50px auto; padding: 20px; }
+        .user-info { background: #f0f0f0; padding: 15px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .logout-btn { background: red; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+        .metrics { display: flex; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+        .metric-card { flex: 1; background: white; border: 1px solid #ddd; border-radius: 10px; padding: 20px; text-align: center; }
+        .metric-card .number { font-size: 36px; font-weight: bold; color: #4a90e2; }
+        .metric-card.late .number { color: #e74c3c; }
+        .task-list { margin-top: 30px; border-top: 1px solid #ccc; padding-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #4a90e2; color: white; }
+        .status-select { padding: 5px; border-radius: 4px; }
+        .nav-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+        .nav-buttons a button { padding: 10px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .notif-btn { position: relative; background: none; border: none; font-size: 22px; cursor: pointer; }
+        .notif-badge { position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: none; align-items: center; justify-content: center; }
+        #notif-panel { display: none; position: absolute; right: 20px; background: white; border: 1px solid #ddd; width: 280px; max-height: 300px; overflow-y: auto; z-index: 100; }
+        .notif-item { padding: 8px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .notif-item.unread { background: #eef4ff; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="user-info">
+        <span id="userName"></span>
+        <div style="position:relative;">
+            <button class="notif-btn" onclick="toggleNotifPanel()">🔔<span id="notif-badge" class="notif-badge"></span></button>
+            <button class="logout-btn" id="logoutBtn">Déconnexion</button>
+        </div>
+    </div>
+    <div id="notif-panel"><div id="notif-list">Chargement...</div></div>
+    
+    <h1>Tableau de bord</h1>
+    <div class="metrics">
+        <div class="metric-card"><div class="number" id="m-active">—</div><div class="label">Projets actifs</div></div>
+        <div class="metric-card"><div class="number" id="m-assigned">—</div><div class="label">Tâches assignées</div></div>
+        <div class="metric-card"><div class="number" id="m-done">—</div><div class="label">Tâches terminées</div></div>
+        <div class="metric-card late"><div class="number" id="m-late">—</div><div class="label">Tâches en retard</div></div>
+    </div>
+
+    <div class="task-list">
+        <h2>📋 Mes tâches assignées</h2>
+        <table id="myTasksTable">
+            <thead><tr><th>Titre</th><th>Projet</th><th>Priorité</th><th>Statut</th><th>Date limite</th><th>Action</th></tr></thead>
+            <tbody id="myTasksBody"></tbody>
+        </table>
+    </div>
+
+    <div class="nav-buttons">
+        <a href="projects.html"><button>📁 Projets</button></a>
+        <a href="tasks.html"><button>✅ Tâches</button></a>
+        <a href="index.html"><button>👥 Assigner</button></a>
+        <a href="members.html"><button>👤 Membres</button></a>
+        <a href="filter.html"><button>🔍 Filtrer</button></a>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const userId = user._id || user.id;
+
+        if (!token) window.location.href = 'login.html';
+        axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
+        
+        document.getElementById('userName').innerHTML = '👋 ' + (user.fullName || 'Utilisateur');
+        document.getElementById('logoutBtn').onclick = () => { localStorage.clear(); window.location.href = 'login.html'; };
+
+        // --- Tableau de bord ---
+        async function loadDashboard() {
+            try {
+                const res = await axios.get('/api/dashboard');
+                const d = res.data;
+                document.getElementById('m-active').innerText = d.activeProjects ?? 0;
+                document.getElementById('m-assigned').innerText = d.assignedTasks ?? 0;
+                document.getElementById('m-done').innerText = d.completedTasks ?? 0;
+                document.getElementById('m-late').innerText = d.lateTasks ?? 0;
+            } catch (err) {
+                console.error("Dashboard Error:", err);
+            }
+        }
+
+        // --- Tâches assignées ---
+        async function loadMyTasks() {
+            try {
+                const res = await axios.get('/api/tasks', { params: { assignedTo: userId } });
+                let tasks = res.data;
+                if (!Array.isArray(tasks)) tasks = [];
+                
+                // 💡 الضربة القاضية: حساب العدادات مباشرة من المهام التي تم جلبها للجدول!
+                // هذا يضمن أن الرقم في العداد سيكون مطابقاً لعدد المهام في الجدول 100%
+                let assignedCount = tasks.length;
+                let doneCount = tasks.filter(t => t.status && t.status.toLowerCase() === 'terminé').length;
+                let lateCount = tasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && (!t.status || t.status.toLowerCase() !== 'terminé')).length;
+
+                // تحديث أرقام لوحة التحكم فوراً بدون انتظار الباك إند
+                document.getElementById('m-assigned').innerText = assignedCount;
+                document.getElementById('m-done').innerText = doneCount;
+                document.getElementById('m-late').innerText = lateCount;
+
+                // ترتيب المهام حسب الأولوية والتاريخ
+                const priorityOrder = { haute: 1, moyenne: 2, basse: 3 };
+                tasks.sort((a,b) => {
+                    if (priorityOrder[a.priority] !== priorityOrder[b.priority]) return priorityOrder[a.priority] - priorityOrder[b.priority];
+                    return new Date(a.dueDate) - new Date(b.dueDate);
+                });
+
+                const tbody = document.getElementById('myTasksBody');
+                tbody.innerHTML = '';
+                
+                if (tasks.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6">Aucune tâche assignée</td></tr>';
+                    return;
+                }
+
+                for (const task of tasks) {
+                    let projectName = 'Inconnu';
+                    try {
+                        if(task.projectId) {
+                            const pRes = await axios.get(`/api/projects/${task.projectId}`);
+                            projectName = pRes.data.projectName || 'Inconnu';
+                        }
+                    } catch(e) { console.warn("Projet introuvable pour", task._id); }
+                    
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${task.title}</td>
+                            <td>${projectName}</td>
+                            <td>${task.priority}</td>
+                            <td>
+                                <select class="status-select" data-id="${task._id}" onchange="updateMyTaskStatus('${task._id}', this.value)">
+                                    <option value="à faire" ${task.status === 'à faire' ? 'selected' : ''}>À faire</option>
+                                    <option value="en cours" ${task.status === 'en cours' ? 'selected' : ''}>En cours</option>
+                                    <option value="terminé" ${task.status === 'terminé' ? 'selected' : ''}>Terminé</option>
+                                </select>
+                            </td>
+                            <td>${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '-'}</td>
+                            <td><button onclick="loadMyTasks()">🔄</button></td>
+                        </tr>
+                    `;
+                }
+            } catch (err) {
+                console.error("Tasks Error:", err);
+            }
+        }
+
+        async function updateMyTaskStatus(taskId, newStatus) {
+            try {
+                await axios.patch(`/api/tasks/${taskId}/status`, { status: newStatus });
+                loadMyTasks();
+                loadDashboard();
+            } catch (err) {
+                const errMsg = err.response?.data?.msg || err.response?.data?.message || err.message;
+                alert('Erreur: ' + errMsg);
+                loadMyTasks();
+            }
+        }
+
+        // --- NOTIFICATIONS AVEC ARCHIVAGE LOCALSTORAGE (F10) ---
+        let notifCache = []; // cache des notifs actuelles
+
+        // Récupère la liste des IDs archivés dans localStorage
+        function getArchivedIds() {
+            return JSON.parse(localStorage.getItem('archivedNotifications') || '[]');
+        }
+
+        // Archive une notification (ajoute son ID et ses infos)
+        function archiveNotification(notif) {
+            let archived = getArchivedIds();
+            // Éviter les doublons
+            if (!archived.some(n => n._id === notif._id)) {
+                archived.push({
+                    _id: notif._id,
+                    message: notif.message,
+                    read: true,
+                    archivedAt: new Date().toISOString()
+                });
+                localStorage.setItem('archivedNotifications', JSON.stringify(archived));
+            }
+        }
+
+        async function loadNotifications() {
+            try {
+                const res = await axios.get('/api/notifications');
+                let notifData = res.data.data || [];
+                notifCache = notifData;
+
+                // Filtrer les non lues qui ne sont pas déjà archivées
+                const archivedIds = getArchivedIds().map(a => a._id);
+                const unread = notifData.filter(n => !n.read && !archivedIds.includes(n._id));
+
+                const badge = document.getElementById('notif-badge');
+                if (unread.length) {
+                    badge.innerText = unread.length;
+                    badge.style.display = 'flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+                
+                const list = document.getElementById('notif-list');
+                if (notifData.length === 0) {
+                    list.innerHTML = '<div>Aucune notification</div>';
+                } else {
+                    list.innerHTML = '';
+                    notifData.forEach(n => {
+                        const isArchivedOrRead = n.read || archivedIds.includes(n._id);
+                        list.innerHTML += `<div class="notif-item ${!isArchivedOrRead ? 'unread' : ''}" onclick="markRead('${n._id}')">${escapeHtml(n.message)}</div>`;
+                    });
+                }
+            } catch(e) {
+                console.error("Notifications error:", e);
+            }
+        }
+
+        async function markRead(id) {
+            try {
+                // Trouver la notification dans le cache avant de la marquer lue
+                const notif = notifCache.find(n => n._id === id);
+                if (notif) {
+                    // Archiver dans localStorage
+                    archiveNotification(notif);
+                }
+                // Appeler l'API pour marquer comme lue (optionnel, mais recommandé)
+                await axios.patch(`/api/notifications/${id}/read`);
+                // Recharger la liste (le badge se mettra à jour)
+                loadNotifications();
+            } catch(e) {
+                console.warn("Erreur lors du marquage lu:", e);
+                // Même si l'API échoue, on archive localement pour l'interface
+                const notif = notifCache.find(n => n._id === id);
+                if (notif) archiveNotification(notif);
+                loadNotifications();
+            }
+        }
+
+        function toggleNotifPanel() {
+            const p = document.getElementById('notif-panel');
+            p.style.display = p.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // Échappement simple pour éviter XSS
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.notif-btn') && !e.target.closest('#notif-panel')) {
+                document.getElementById('notif-panel').style.display = 'none';
+            }
+        });
+
+        // Démarrage
+        loadDashboard();
+        loadMyTasks();
+        loadNotifications();
+        setInterval(loadNotifications, 30000);
+    </script>
+    <a href="activity.html"><button>📜 Activités</button></a>
+</body>
+
+</html>
