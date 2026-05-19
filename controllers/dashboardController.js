@@ -1,70 +1,53 @@
 const Task = require('../models/Task');
 const Project = require('../models/Project');
-const mongoose = require('mongoose');
 
 exports.getDashboardStats = async (req, res) => {
     try {
-        // التأكد من تحويل المعرف إلى ObjectId صالح لـ MongoDB
-        const userId = new mongoose.Types.ObjectId(req.user.id);
+        // 1. استخراج المعرف بشكل آمن
+        const userId = req.user.id || req.user._id || req.user.userId;
+
+        if (!userId) {
+            return res.status(400).json({ message: 'Utilisateur non identifié' });
+        }
+
+        // 2. حساب المشاريع النشطة باستخدام countDocuments (التي تدعم الـ Auto-casting)
+        const activeProjects = await Project.countDocuments({
+            $or: [{ owner: userId }, { members: userId }],
+            status: 'actif'
+        });
+
+        // 3. جلب جميع مهام المستخدم (بنفس الطريقة التي نجحت في الجدول السفلي)
+        const userTasks = await Task.find({ assignedTo: userId });
+
+        // 4. بناء العدادات يدوياً بناءً على البيانات المستخرجة لضمان الدقة المطلقة
+        let assignedTasks = userTasks.length;
+        let completedTasks = 0;
+        let lateTasks = 0;
         const now = new Date();
 
-        // 1. حساب المشاريع النشطة باستخدام Aggregation ($match, $count) - توافق تام مع دفتر التحملات
-        const projectStats = await Project.aggregate([
-            {
-                $match: {
-                    $or: [{ owner: userId }, { members: userId }],
-                    status: 'actif'
-                }
-            },
-            {
-                $count: 'activeProjects'
-            }
-        ]);
-
-        const activeProjects = projectStats.length > 0 ? projectStats[0].activeProjects : 0;
-
-        // 2. حساب المهام (المسندة، المنجزة، المتأخرة) باستخدام Aggregation ($match, $group)
-        const taskStats = await Task.aggregate([
-            {
-                $match: { assignedTo: userId }
-            },
-            {
-                $group: {
-                    _id: null,
-                    assignedTasks: { $sum: 1 }, // حساب كل المهام التي مرت من الفلتر
-                    completedTasks: {
-                        $sum: { $cond: [{ $eq: ["$status", "terminé"] }, 1, 0] }
-                    },
-                    lateTasks: {
-                        $sum: {
-                            $cond: [
-                                {
-                                    $and: [
-                                        { $ne: ["$status", "terminé"] },
-                                        // انتبه: إذا كان حقل التاريخ في Task.js اسمه deadline، قم بتغيير dueDate هنا إلى deadline
-                                        { $lt: ["$dueDate", now] },
-                                        { $ne: ["$dueDate", null] } 
-                                    ]
-                                }, 1, 0
-                            ]
-                        }
-                    }
+        userTasks.forEach(task => {
+            // حساب المهام المنجزة (تجاهل حالة الأحرف)
+            if (task.status && task.status.toLowerCase() === 'terminé') {
+                completedTasks++;
+            } 
+            // حساب المهام المتأخرة
+            else {
+                if (task.dueDate && new Date(task.dueDate) < now) {
+                    lateTasks++;
                 }
             }
-        ]);
+        });
 
-        // استخراج النتائج أو إرجاع أصفار إذا لم تكن هناك مهام
-        const stats = taskStats.length > 0 ? taskStats[0] : { assignedTasks: 0, completedTasks: 0, lateTasks: 0 };
-
+        // 5. إرسال الأرقام النهائية للواجهة
         res.status(200).json({
             activeProjects,
-            assignedTasks: stats.assignedTasks,
-            completedTasks: stats.completedTasks,
-            lateTasks: stats.lateTasks
+            assignedTasks,
+            completedTasks,
+            lateTasks
         });
 
     } catch (error) {
-        console.error("Erreur Dashboard Aggregation:", error);
+        console.error("Erreur Dashboard:", error);
         res.status(500).json({ message: 'Erreur dashboard', error: error.message });
     }
 };

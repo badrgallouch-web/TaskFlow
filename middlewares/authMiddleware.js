@@ -10,9 +10,12 @@ const protect = (req, res, next) => {
     const token = authHeader.split(' ')[1];
 
     try {
-        // FIX: حذف console.log التي كانت تطبع الـ token والـ secret في الـ terminal
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
         req.user = decoded;
+        
+        // FIX: توحيد قراءة المعرف لكي تعمل إحصائيات لوحة التحكم والمهام بشكل سليم دائماً
+        req.user.id = decoded.id || decoded._id; 
+        
         next();
     } catch (err) {
         return res.status(401).json({
