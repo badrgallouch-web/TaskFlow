@@ -7,15 +7,17 @@ const taskSchema = new mongoose.Schema({
         required: true
     },
 
+    // دفتر التحملات: basse, moyenne, haute
     priority: {
         type: String,
-        enum: ['low', 'medium', 'high'],
+        enum: ['basse', 'moyenne', 'haute'],
         required: true
     },
 
+    // دفتر التحملات: à faire, en cours, terminé
     status: {
         type: String,
-        enum: ['todo', 'doing', 'done'],
+        enum: ['à faire', 'en cours', 'terminé'],
         required: true
     },
 
@@ -27,9 +29,14 @@ const taskSchema = new mongoose.Schema({
 
     assignedTo: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
+        ref: 'User',
+        default: null
+    },
+
+    dueDate: {
+        type: Date
     }
 
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('Task', taskSchema);

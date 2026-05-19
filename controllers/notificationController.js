@@ -3,7 +3,9 @@ const Notification = require('../models/Notification');
 // GET /api/notifications
 exports.getNotifications = async (req, res) => {
     try {
-        const notifications = await Notification.find({ userId: 'system' })
+        // FIX: استخدام user: req.user.id ليطابق الـ model (الحقل اسمه user وليس userId)
+        // كل مستخدم يرى إشعاراته الخاصة فقط
+        const notifications = await Notification.find({ user: req.user.id })
             .sort({ createdAt: -1 });
 
         res.status(200).json({

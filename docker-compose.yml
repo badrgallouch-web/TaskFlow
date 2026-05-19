@@ -1,11 +1,30 @@
+version: '3.8'
+
 services:
   mongo:
     image: mongo:6
-    container_name: taskflow-mongo
-    ports:
-      - "27017:27017"
+    container_name: taskflow_mongo
+    restart: unless-stopped
     volumes:
       - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+
+  app:
+    build: .
+    container_name: taskflow_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/TaskFlowDB
+      - JWT_SECRET=${JWT_SECRET}
+      - PORT=3000
+    depends_on:
+      - mongo
+    volumes:
+      - .:/app
+      - /app/node_modules
 
 volumes:
   mongo_data:

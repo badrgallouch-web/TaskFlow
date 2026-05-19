@@ -9,8 +9,10 @@ exports.getProjectActivities = async (req, res) => {
             return res.status(404).json({ message: 'Project not found' });
         }
 
-        const activities = await Activity.find({ projectId: req.params.id })
-            .sort({ createdAt: -1 }); // plus récente → plus ancienne
+        // FIX: كان { projectId: req.params.id } لكن الـ model يستخدم { project }
+        const activities = await Activity.find({ project: req.params.id })
+            .populate('user', 'fullName email') // إظهار اسم وإيميل المستخدم فقط
+            .sort({ createdAt: -1 });
 
         res.status(200).json({
             message: 'Activity feed retrieved successfully',

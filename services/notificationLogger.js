@@ -1,23 +1,27 @@
+// services/notificationLogger.js
 const Notification = require('../models/Notification');
+
 /**
- * Crée une notification en base de données
+ * إنشاء إشعار جديد
  * @param {Object} options
- * @param {string} options.userId     - ID de l'utilisateur à notifier
- * @param {string} options.type       - task_assigned | status_changed | member_added
- * @param {string} options.message    - Message lisible
- * @param {string} options.projectId  - ID du projet concerné
+ * @param {string} options.userId   - معرّف المستخدم المستهدف
+ * @param {string} options.type     - نوع الإشعار (task_assigned | status_changed | member_added | member_removed)
+ * @param {string} options.message  - نص الإشعار
+ * @param {string} [options.projectId] - معرّف المشروع (اختياري)
  */
-const createNotification = async ({ userId = 'system', type, message, projectId }) => {
+async function createNotification({ userId, type, message, projectId }) {
     try {
         await Notification.create({
-            user: userId,
-            project: projectId,
-            type,
-            message
+            user:    userId,
+            type:    type,
+            message: message,
+            project: projectId || null,
+            read:    false
         });
     } catch (err) {
-        console.error('Failed to create notification:', err.message);
+        // لا نوقف العملية الأصلية إذا فشل الإشعار
+        console.error('Notification error:', err.message);
     }
-};
+}
 
 module.exports = { createNotification };

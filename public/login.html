@@ -67,7 +67,8 @@
             const password = document.getElementById('password').value;
 
             try {
-                const response = await axios.post('http://localhost:3000/api/auth/login', {
+                // FIX: URL relative (pas de localhost hard-codé)
+                const response = await axios.post('/api/auth/login', {
                     email, password
                 });
                 

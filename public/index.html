@@ -2,124 +2,177 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>TaskFlow</title>
+    <title>TaskFlow - Assigner une tâche</title>
     <style>
+        * { box-sizing: border-box; }
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f6f8;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
         }
-
         .container {
             background-color: white;
             padding: 30px;
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            width: 400px;
+            width: 420px;
         }
-
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        label {
-            font-weight: bold;
-            color: #555;
-            display: block;
-            margin-bottom: 5px;
-        }
-
+        h1 { color: #333; margin-bottom: 20px; text-align: center; }
+        label { font-weight: bold; color: #555; display: block; margin-bottom: 5px; }
         select, input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+            width: 100%; padding: 10px; margin-bottom: 15px;
+            border: 1px solid #ddd; border-radius: 6px;
             font-size: 14px;
-            box-sizing: border-box;
         }
-
         button {
-            width: 100%;
-            padding: 12px;
-            background-color: #4a90e2;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            cursor: pointer;
+            width: 100%; padding: 12px;
+            background-color: #4a90e2; color: white;
+            border: none; border-radius: 6px;
+            font-size: 16px; cursor: pointer;
         }
-
-        button:hover {
-            background-color: #357abd;
-        }
-
-        #message {
-            text-align: center;
-            margin-top: 15px;
-            font-weight: bold;
-            color: green;
-        }
-
-        button:active {
-            background-color: #2a5d9f;
-        }
+        button:hover    { background-color: #357abd; }
+        button:disabled { background-color: #aaa; cursor: not-allowed; }
+        #message { text-align: center; margin-top: 15px; font-weight: bold; }
+        .success { color: green; }
+        .error   { color: red;   }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>Assigner une tâche</h1>
+<div class="container">
+    <h1>Assigner une tâche</h1>
 
-        <label>ID du membre :</label>
-        <input type="text" id="userId" placeholder="ID du membre" />
+    <label>Membre :</label>
+    <select id="userId">
+        <option value="">Chargement des membres...</option>
+    </select>
 
-        <label>ID de la tâche :</label>
-        <input type="text" id="taskId" placeholder="ID de la tâche" />
+    <label>Tâche :</label>
+    <select id="taskId">
+        <option value="">Chargement des tâches...</option>
+    </select>
 
-        <button onclick="assignerTache()">Assigner</button>
+    <button id="assignBtn" onclick="assignerTache()">Assigner</button>
+    <p id="message"></p>
+</div>
 
-        <p id="message"></p>
-    </div>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+    // ===== 1. Récupération du token et du projet =====
+    const token     = localStorage.getItem('token');
+    const projectId = localStorage.getItem('currentProjectId');
 
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script>
+    // FIX: Redirection si pas de token
+    if (!token) {
+        alert("Session expirée. Veuillez vous reconnecter.");
+        window.location.href = 'login.html';
+    }
 
-        const token = localStorage.getItem('token');
+    if (!projectId) {
+        alert("Aucun projet sélectionné. Retour à l'accueil.");
+        window.location.href = 'index.html';
+    }
 
-        if (!token) {
-            window.location.href = 'login.html';
+    // FIX: Axios interceptor — envoie le token automatiquement sur toutes les requêtes
+    axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
+
+    // ===== 2. Charger les membres =====
+    async function loadMembers() {
+        const select = document.getElementById('userId');
+        try {
+            // FIX: URL relative au lieu de localhost pour fonctionner en production/Docker
+            const res = await axios.get(`/api/projects/${projectId}/members`);
+            const members = res.data.members || res.data || [];
+
+            if (members.length === 0) {
+                select.innerHTML = '<option value="">Aucun membre dans ce projet</option>';
+                return;
+            }
+
+            select.innerHTML = '<option value="">-- Choisir un membre --</option>';
+            members.forEach(function(m) {
+                const name = m.fullName || m.name || 'Utilisateur';
+                select.innerHTML += `<option value="${m._id}">${name} (${m.email})</option>`;
+            });
+
+        } catch (err) {
+            console.error("Erreur membres:", err.response?.data || err.message);
+            select.innerHTML = '<option value="">Erreur de chargement des membres</option>';
+        }
+    }
+
+    // ===== 3. Charger les tâches =====
+    async function loadTasks() {
+        const select = document.getElementById('taskId');
+        try {
+            // FIX: URL relative — pas de localhost hard-codé
+            const res = await axios.get(`/api/projects/${projectId}/tasks`);
+            // FIX: gère les deux formats de réponse (data.data ou data directement)
+            const tasks = Array.isArray(res.data) ? res.data : (res.data.data || []);
+
+            if (tasks.length === 0) {
+                select.innerHTML = '<option value="">Aucune tâche dans ce projet</option>';
+                return;
+            }
+
+            select.innerHTML = '<option value="">-- Choisir une tâche --</option>';
+            tasks.forEach(function(task) {
+                const label = task.title + (task.assignedTo ? ' ✓' : '');
+                select.innerHTML += `<option value="${task._id}">${label}</option>`;
+            });
+
+        } catch (err) {
+            console.error("Erreur tâches:", err.response?.data || err.message);
+            select.innerHTML = '<option value="">Erreur de chargement des tâches</option>';
+        }
+    }
+
+    // ===== 4. Assigner =====
+    async function assignerTache() {
+        const userId  = document.getElementById('userId').value;
+        const taskId  = document.getElementById('taskId').value;
+        const msgEl   = document.getElementById('message');
+        const btn     = document.getElementById('assignBtn');
+
+        msgEl.innerText = '';
+
+        if (!userId || !taskId) {
+            msgEl.className = 'error';
+            msgEl.innerText = 'Veuillez sélectionner un membre et une tâche ❌';
+            return;
         }
 
-        async function assignerTache() {
-            const userId = document.getElementById('userId').value;
-            const taskId = document.getElementById('taskId').value;
-            const token = localStorage.getItem('token');
+        try {
+            btn.disabled  = true;
+            btn.innerText = 'Assignation en cours...';
 
-            try {
-                const res = await axios.patch(
-                    `http://localhost:3000/api/tasks/${taskId}/assign`,
-                    { userId },
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`
-                        }
-                    }
-                );
+            // FIX: URL relative + body { assignedTo } (correspond au backend)
+            await axios.patch(`/api/tasks/${taskId}/assign`, { assignedTo: userId });
 
-                document.getElementById('message').innerText = 'Tâche assignée avec succès ✅';
-            } catch (err) {
-                document.getElementById('message').innerText = 'Erreur ❌';
-            }  
+            msgEl.className = 'success';
+            msgEl.innerText = 'Tâche assignée avec succès ✅';
+
+            // Rafraîchir la liste des tâches pour voir le ✓
+            await loadTasks();
+
+        } catch (err) {
+            console.error("Erreur assignation:", err.response?.data || err.message);
+            msgEl.className = 'error';
+            msgEl.innerText = err.response?.data?.message || "Erreur lors de l'assignation ❌";
+        } finally {
+            btn.disabled  = false;
+            btn.innerText = 'Assigner';
         }
+    }
 
-    </script>
+    // ===== Démarrage =====
+    loadMembers();
+    loadTasks();
+</script>
 
 </body>
 </html>

@@ -1,24 +1,25 @@
-const allowedPriorities = ['low', 'medium', 'high'];
-const allowedStatuses = ['todo', 'doing', 'done'];
+// القيم يجب أن تطابق Task.js تماماً
+const allowedPriorities = ['basse', 'moyenne', 'haute'];
+const allowedStatuses   = ['à faire', 'en cours', 'terminé'];
 
 exports.validateTask = (req, res, next) => {
     const { title, priority, status, projectId } = req.body;
 
     if (!title || !priority || !status || !projectId) {
         return res.status(400).json({
-            message: 'title, priority, status and projectId are required'
+            message: 'title, priority, status et projectId sont obligatoires'
         });
     }
 
     if (!allowedPriorities.includes(priority)) {
         return res.status(400).json({
-            message: 'priority must be low, medium or high'
+            message: 'priority doit être : basse, moyenne ou haute'
         });
     }
 
     if (!allowedStatuses.includes(status)) {
         return res.status(400).json({
-            message: 'status must be todo, doing or done'
+            message: 'status doit être : à faire, en cours ou terminé'
         });
     }
 
@@ -30,7 +31,7 @@ exports.validateStatus = (req, res, next) => {
 
     if (!allowedStatuses.includes(status)) {
         return res.status(400).json({
-            message: 'status must be todo, doing or done'
+            message: 'status doit être : à faire, en cours ou terminé'
         });
     }
 
