@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Assigner une tâche</title>
+    <style>
+
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f6f8;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+    }
+
+    .container {
+        background: white;
+        width: 450px;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+        text-align: center;
+        margin-bottom: 25px;
+        color: #333;
+    }
+
+    label {
+        display: block;
+        margin-top: 15px;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #555;
+    }
+
+    select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-sizing: border-box;
+        margin-bottom: 15px;
+    }
+
+    button {
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 6px;
+        background-color: #4a90e2;
+        color: white;
+        font-size: 15px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background-color: #357abd;
+    }
+
+    button:active {
+        background-color: #2a5d9f;
+    }
+
+    #message {
+        text-align: center;
+        margin-top: 15px;
+        font-weight: bold;
+    }
+
+</style>
+</head>
+<body>
+    <div class="container">
+    <h1>Assigner une tâche</h1>
+    <p id="projectInfo"></p>
+
+    <label>Tâche :</label>
+    <select id="taskSelect"></select>
+
+    <label>Membre :</label>
+    <select id="memberSelect"></select>
+
+    <button onclick="assignerTache()">Assigner</button>
+
+    <p id="message"></p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        const projectId = localStorage.getItem('currentProjectId');
+
+        document.getElementById('projectInfo').innerText =
+            'Projet actuel : ' + (localStorage.getItem('currentProjectName') || '');
+
+        if (!projectId) {
+            alert('Veuillez choisir un projet d’abord.');
+            window.location.href = 'projects.html';
+        }
+
+        if (!token) window.location.href = 'login.html';
+
+        async function chargerDonnees() {
+            const tasksRes = await axios.get('http://localhost:3000/api/tasks', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const projectRes = await axios.get(`http://localhost:3000/api/projects/${projectId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const taskSelect = document.getElementById('taskSelect');
+            const memberSelect = document.getElementById('memberSelect');
+
+            taskSelect.innerHTML = '';
+            memberSelect.innerHTML = '';
+
+            tasksRes.data
+                .filter(task => task.projectId === projectId || task.projectId?._id === projectId)
+                .forEach(task => {
+                    taskSelect.innerHTML += `<option value="${task._id}">${task.title}</option>`;
+                });
+
+            projectRes.data.members.forEach(member => {
+                memberSelect.innerHTML += `<option value="${member._id}">${member.fullName} (${member.email})</option>`;
+            });
+        }
+
+        async function assignerTache() {
+            const taskId = document.getElementById('taskSelect').value;
+            const userId = document.getElementById('memberSelect').value;
+
+            try {
+                await axios.patch(
+                    `http://localhost:3000/api/tasks/${taskId}/assign`,
+                    { userId },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                document.getElementById('message').innerText = 'Tâche assignée avec succès ✅';
+            } catch (err) {
+                document.getElementById('message').innerText =
+                    err.response?.data?.message || 'Erreur ❌';
+            }
+        }
+
+        chargerDonnees();
+    </script>
+</body>
+</html>

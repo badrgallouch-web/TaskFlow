@@ -1,30 +1,32 @@
-version: '3.8'
-
 services:
   mongo:
-    image: mongo:6
-    container_name: taskflow_mongo
+    image: mongo:7
+    container_name: taskflow-mongo
     restart: unless-stopped
-    volumes:
-      - mongo_data:/data/db
     ports:
       - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   app:
     build: .
-    container_name: taskflow_app
+    container_name: taskflow-app
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      - MONGO_URI=mongodb://mongo:27017/TaskFlowDB
-      - JWT_SECRET=${JWT_SECRET}
-      - PORT=3000
+      MONGO_URI: mongodb://mongo:27017/TaskFlowDB
+      JWT_SECRET: ${JWT_SECRET:-secret123}
+      PORT: 3000
     depends_on:
-      - mongo
-    volumes:
-      - .:/app
-      - /app/node_modules
+      mongo:
+        condition: service_healthy
 
 volumes:
   mongo_data:

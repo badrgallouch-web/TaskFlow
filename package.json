@@ -1,11 +1,14 @@
 {
-  "name": "backend",
+  "name": "taskflow",
   "version": "1.0.0",
-  "description": "TaskFlow API",
-  "main": "server.js",
+  "description": "TaskFlow — project and task management API with static frontend",
+  "main": "backend/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "docker:up": "docker compose up -d --build --remove-orphans",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f app"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

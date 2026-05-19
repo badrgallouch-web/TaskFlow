@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>TaskFlow - Membres</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            width: 450px;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #333;
+        }
+
+        h2 {
+            margin-top: 30px;
+            color: #444;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 15px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            background-color: #4a90e2;
+        }
+
+        .invite-btn {
+            background-color: #4a90e2;
+        }
+
+        .remove-btn {
+            background-color: #e74c3c;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        #message {
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        button:active {
+            opacity: 0.8;
+        }
+        .invite-btn:active {
+            background-color: #357abd;
+        }
+        .remove-btn:active {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+    <h1>Gestion des membres</h1>
+    <p id="projectInfo"></p>
+
+    <h2>Inviter un membre</h2>
+
+    <input type="email" id="email" placeholder="Email du membre">
+
+    <button class="invite-btn" onclick="inviteMember()">
+        Inviter le membre
+    </button>
+
+    <h2>Retirer un membre</h2>
+
+    <select id="memberSelect">
+    </select>
+
+    <button class="remove-btn" onclick="removeMember()">
+        Retirer le membre
+    </button>
+    <p id="message"></p>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<script>
+
+    const projectId = localStorage.getItem('currentProjectId');
+
+    const token = localStorage.getItem('token');
+    document.getElementById('projectInfo').innerText =
+        'Projet actuel : ' +
+        (localStorage.getItem('currentProjectName') || '');
+
+    if (!token) {
+        window.location.href = 'login.html';
+    }
+
+    async function inviteMember() {
+
+        const projectId = localStorage.getItem('currentProjectId');
+        const email = document.getElementById('email').value;
+
+        try {
+
+            const response = await axios.post(
+
+                `http://localhost:3000/api/projects/${projectId}/members`,
+
+                { email },
+
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+
+            );
+
+            document.getElementById('message').innerText =
+                'Membre invité avec succès ✅';
+
+            await loadMembers();
+
+        } catch (error) {
+
+            document.getElementById('message').innerText =
+                error.response?.data?.message || 'Erreur ❌';
+
+        }
+
+    }
+
+    async function loadMembers() {
+
+        try {
+
+            const response = await axios.get(
+
+                `http://localhost:3000/api/projects/${projectId}`,
+
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+
+            );
+
+
+            const select = document.getElementById('memberSelect');
+
+            select.innerHTML = '';
+
+            response.data.members.forEach(member => {
+
+                select.innerHTML += `
+                    <option value="${member._id}">
+                        ${member.fullName} (${member.email})
+                    </option>
+                `;
+
+            });
+
+        } catch (error) {
+
+            console.log(error);
+
+         }
+
+    }
+
+    async function removeMember() {
+
+        const projectId = localStorage.getItem('currentProjectId');
+        const userId = document.getElementById('memberSelect').value;
+
+        try {
+
+            const response = await axios.delete(
+
+                `http://localhost:3000/api/projects/${projectId}/members/${userId}`,
+
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+
+            );
+
+            document.getElementById('message').innerText =
+                'Membre retiré avec succès ✅';
+
+            await loadMembers();
+
+        } catch (error) {
+
+            document.getElementById('message').innerText =
+                error.response?.data?.message || 'Erreur ❌';
+
+        }
+
+    }
+    loadMembers();
+
+</script>
+</body>
+</html>

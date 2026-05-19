@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TaskFlow - Inscription</title>
+    <style>
+        body {
+            font-family: Arial;
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;}
+        button {
+            width: 100%;
+            padding: 10px;
+            background: blue;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .error { 
+            color: red;
+            margin-top: 10px;
+        }
+        .success {
+            color: green;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: darkblue;
+        }
+         button:active {
+            background: rgb(43, 43, 172);
+        }
+    </style>
+</head>
+<body>
+    <h1>Inscription TaskFlow</h1>
+    <form id="registerForm">
+        <input type="text" id="name" placeholder="Nom complet" required>
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="password" id="password" placeholder="Mot de passe" required>
+        <button type="submit">S'inscrire</button>
+    </form>
+    <div id="message"></div>
+    <p>Déjà un compte ? <a href="login.html">Se connecter</a></p>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/js/api.js"></script>
+    <script>
+        const form = document.getElementById('registerForm');
+        const messageDiv = document.getElementById('message');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fullName = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await axios.post(apiUrl('/api/auth/register'), {
+                    fullName,
+                    email,
+                    password
+                });
+                
+                if (response.data.success) {
+                    localStorage.setItem('token', response.data.token);
+                    localStorage.setItem('user', JSON.stringify(response.data.user));
+                    messageDiv.innerHTML = '<div class="success">Inscription réussie ! Redirection...</div>';
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 2000);
+                }
+            } catch (error) {
+                messageDiv.innerHTML = '<div class="error">' + 
+                    (error.response?.data?.message || 'Erreur') + '</div>';
+            }
+        });
+    </script>
+</body>
+</html>

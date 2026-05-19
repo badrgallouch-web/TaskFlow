@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>TaskFlow - Filtrage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            padding: 30px;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: auto;
+        }
+        h1 { color: #333; text-align: center; }
+        .filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        select, input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            flex: 1;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background-color: #357abd; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th { background-color: #4a90e2; color: white; }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .pagination button {
+            padding: 8px 15px;
+        }
+        .pagination button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .pagination span {
+            font-weight: bold;
+        }
+        button:active {
+            background-color: #2a5d9f;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        button:disabled:hover {
+            background-color: #ccc;
+        }
+        button:disabled:active {
+            background-color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Liste des tâches</h1>
+
+        <div class="filters">
+            <input type="text" id="search" placeholder="Rechercher par mot-clé..." />
+            <select id="statut">
+                <option value="">-- Statut --</option>
+                <option value="todo">À faire</option>
+                <option value="doing">En cours</option>
+                <option value="done">Terminé</option>
+            </select>
+
+            <select id="priorite">
+                <option value="">-- Priorité --</option>
+                <option value="low">Basse</option>
+                <option value="medium">Moyenne</option>
+                <option value="high">Haute</option>
+            </select>
+            <button onclick="chargerTaches(1)">Filtrer</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Titre</th>
+                    <th>Statut</th>
+                    <th>Priorité</th>
+                </tr>
+            </thead>
+            <tbody id="tasksList"></tbody>
+        </table>
+
+        <div class="pagination">
+            <button id="btnPrev" onclick="changerPage(-1)" disabled>◀ Précédent</button>
+            <span id="pageInfo"></span>
+            <button id="btnNext" onclick="changerPage(1)">Suivant ▶</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+        let currentPage = 1;
+
+        async function chargerTaches(page = 1) {
+            currentPage = page;
+
+            const search = document.getElementById('search').value.toLowerCase();
+            const statut = document.getElementById('statut').value;
+            const priorite = document.getElementById('priorite').value;
+
+            try {
+                const res = await axios.get('http://localhost:3000/api/tasks', {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+            });
+                console.log("TASKS RECEIVED:", res.data);
+
+                let tasks = res.data;
+
+                if (search) {
+                    tasks = tasks.filter(task =>
+                        task.title.toLowerCase().includes(search)
+                    );
+                }
+
+                if (statut) {
+                    tasks = tasks.filter(task => task.status === statut);
+                }
+
+                if (priorite) {
+                    tasks = tasks.filter(task => task.priority === priorite);
+                }
+
+                const limit = 5;
+                const totalPages = Math.ceil(tasks.length / limit) || 1;
+                const start = (page - 1) * limit;
+                const data = tasks.slice(start, start + limit);
+
+                const tbody = document.getElementById('tasksList');
+                tbody.innerHTML = '';
+
+                data.forEach(task => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${task.title}</td>
+                            <td>
+                                ${
+                                    task.status === 'todo' ? 'À faire' :
+                                    task.status === 'doing' ? 'En cours' :
+                                    'Terminé'
+                                }
+                            </td>
+
+                            <td>
+                                ${
+                                    task.priority === 'low' ? 'Basse' :
+                                    task.priority === 'medium' ? 'Moyenne' :
+                                    'Haute'
+                                }
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                document.getElementById('pageInfo').innerText = `Page ${page} / ${totalPages}`;
+                document.getElementById('btnPrev').disabled = page <= 1;
+                document.getElementById('btnNext').disabled = page >= totalPages;
+
+            } catch (err) {
+                console.log('Erreur complète:', err);
+                console.log('Réponse serveur:', err.response?.data);
+                document.getElementById('tasksList').innerHTML = `
+                    <tr>
+                        <td colspan="3">Erreur chargement tâches</td>
+                    </tr>
+                `;
+            }
+        }
+
+
+
+        function changerPage(direction) {
+            chargerTaches(currentPage + direction);
+        }
+
+        chargerTaches(1);
+    </script>
+</body>
+</html>
