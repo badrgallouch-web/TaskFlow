@@ -1,178 +1,91 @@
+<file path="public/members.html">
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <title>TaskFlow - Membres</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f6f8;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-
-        .container {
-            background: white;
-            width: 450px;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        h1 {
-            text-align: center;
-            margin-bottom: 25px;
-            color: #333;
-        }
-
-        h2 {
-            margin-top: 30px;
-            color: #444;
-        }
-
-        input {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            box-sizing: border-box;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 6px;
-            color: white;
-            font-size: 15px;
-            cursor: pointer;
-            margin-bottom: 10px;
-            background-color: #4a90e2;
-        }
-
-        .invite-btn {
-            background-color: #4a90e2;
-        }
-
-        .remove-btn {
-            background-color: #e74c3c;
-        }
-
-        button:hover {
-            opacity: 0.9;
-        }
-
-        #message {
-            text-align: center;
-            margin-top: 15px;
-            font-weight: bold;
-        }
+        body { font-family: Arial; background: #f4f6f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background: white; width: 450px; padding: 30px; border-radius: 10px; }
+        h1, h2 { text-align: center; }
+        input, select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; }
+        button { width: 100%; padding: 12px; background: #4a90e2; color: white; border: none; border-radius: 6px; cursor: pointer; margin-bottom: 10px; }
+        .remove-btn { background: #e74c3c; }
+        #message { text-align: center; margin-top: 15px; font-weight: bold; }
+        .success { color: green; }
+        .error { color: red; }
     </style>
 </head>
 <body>
     <div class="container">
+        <h1>Gestion des membres</h1>
+        <p id="projectInfo"></p>
+        
+        <h2>Inviter un membre</h2>
+        <input type="email" id="email" placeholder="Email du membre">
+        <button onclick="inviteMember()">Inviter</button>
+        
+        <h2>Retirer un membre</h2>
+        <select id="memberSelect"></select>
+        <button class="remove-btn" onclick="removeMember()">Retirer</button>
+        
+        <p id="message"></p>
+    </div>
 
-    <h1>Gestion des membres</h1>
-
-    <h2>Inviter un membre</h2>
-
-    <input type="email" id="email" placeholder="Email du membre">
-
-    <button class="invite-btn" onclick="inviteMember()">
-        Inviter le membre
-    </button>
-
-    <h2>Retirer un membre</h2>
-
-    <input type="text" id="userId" placeholder="ID du membre">
-
-    <button class="remove-btn" onclick="removeMember()">
-        Retirer le membre
-    </button>
-
-    <p id="message"></p>
-
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-
-<script>
-
-    const token = localStorage.getItem('token');
-
-    if (!token) {
-        window.location.href = 'login.html';
-    }
-
-    async function inviteMember() {
-
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const token = localStorage.getItem('token');
         const projectId = localStorage.getItem('currentProjectId');
-        const email = document.getElementById('email').value;
+        
+        if (!token) window.location.href = 'login.html';
+        if (!projectId) alert('Sélectionnez un projet d\'abord');
+        
+        axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
+        document.getElementById('projectInfo').innerText = 'Projet : ' + (localStorage.getItem('currentProjectName') || '');
 
-        try {
-
-            const response = await axios.post(
-
-                `http://localhost:3000/api/projects/${projectId}/members`,
-
-                { email },
-
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }
-
-            );
-
-            document.getElementById('message').innerText =
-                'Membre invité avec succès ✅';
-
-        } catch (error) {
-
-            document.getElementById('message').innerText =
-                error.response?.data?.message || 'Erreur ❌';
-
+        async function loadMembers() {
+            try {
+                const res = await axios.get(`/api/projects/${projectId}`);
+                const members = res.data.members || [];
+                const select = document.getElementById('memberSelect');
+                select.innerHTML = '';
+                members.forEach(m => {
+                    select.innerHTML += `<option value="${m._id}">${m.fullName} (${m.email})</option>`;
+                });
+            } catch(err) { 
+                console.error(err); 
+            }
         }
 
-    }
-
-    async function removeMember() {
-
-        const projectId = localStorage.getItem('currentProjectId');
-        const userId = document.getElementById('userId').value;
-
-        try {
-
-            const response = await axios.delete(
-
-                `http://localhost:3000/api/projects/${projectId}/members/${userId}`,
-
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }
-
-            );
-
-            document.getElementById('message').innerText =
-                'Membre retiré avec succès ✅';
-
-        } catch (error) {
-
-            document.getElementById('message').innerText =
-                error.response?.data?.message || 'Erreur ❌';
-
+        async function inviteMember() {
+            const email = document.getElementById('email').value;
+            const msg = document.getElementById('message');
+            if (!email) { msg.className='error'; msg.innerText='Email requis'; return; }
+            try {
+                await axios.post(`/api/projects/${projectId}/members`, { email });
+                msg.className='success'; msg.innerText='Membre ajouté ✅';
+                loadMembers();
+                document.getElementById('email').value = '';
+            } catch(err) {
+                msg.className='error'; msg.innerText=err.response?.data?.message || 'Erreur';
+            }
         }
 
-    }
+        async function removeMember() {
+            const userId = document.getElementById('memberSelect').value;
+            if (!userId) return;
+            if (!confirm('Retirer ce membre ?')) return;
+            try {
+                await axios.delete(`/api/projects/${projectId}/members/${userId}`);
+                document.getElementById('message').innerHTML = '<span class="success">Membre retiré ✅</span>';
+                loadMembers();
+            } catch(err) { 
+                alert('Erreur'); 
+            }
+        }
 
-</script>
+        loadMembers();
+    </script>
 </body>
 </html>
+</file>

@@ -1,327 +1,191 @@
+<file path="public/dashboard.html">
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <title>TaskFlow - Dashboard</title>
     <style>
-        body {
-            font-family: Arial;
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-        }
-
-        /* ── Barre utilisateur ── */
-        .user-info {
-            background: #f0f0f0;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .logout-btn {
-            padding: 10px;
-            background: red;
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-        .logout-btn:hover  { background: darkred; }
-        .logout-btn:active { background: rgb(104,15,15); }
-
-        /* ── Cloche de notifications (Fonctionnalité 10) ── */
-        .notif-btn {
-            position: relative;
-            background: none;
-            border: none;
-            font-size: 22px;
-            cursor: pointer;
-            padding: 4px 8px;
-        }
-        .notif-badge {
-            position: absolute;
-            top: 0;
-            right: 0;
-            background: #e74c3c;
-            color: white;
-            font-size: 10px;
-            font-weight: bold;
-            border-radius: 50%;
-            width: 16px;
-            height: 16px;
-            display: none;
-            align-items: center;
-            justify-content: center;
-        }
-        #notif-panel {
-            display: none;
-            position: absolute;
-            right: 20px;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            width: 300px;
-            z-index: 100;
-            max-height: 360px;
-            overflow-y: auto;
-        }
-        .notif-item {
-            padding: 12px 16px;
-            border-bottom: 1px solid #eee;
-            font-size: 13px;
-            cursor: pointer;
-        }
-        .notif-item:hover  { background: #f9f9f9; }
-        .notif-item.unread { font-weight: bold; background: #eef4ff; }
-        .notif-empty { padding: 16px; text-align: center; color: #999; font-size: 13px; }
-
-        /* ── Métriques (Fonctionnalité 5) ── */
-        .metrics {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            margin-bottom: 30px;
-        }
-        .metric-card {
-            flex: 1;
-            min-width: 150px;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-        }
-        .metric-card .number {
-            font-size: 36px;
-            font-weight: bold;
-            color: #4a90e2;
-        }
+        body { font-family: Arial; max-width: 1000px; margin: 50px auto; padding: 20px; }
+        .user-info { background: #f0f0f0; padding: 15px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .logout-btn { background: red; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+        .metrics { display: flex; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+        .metric-card { flex: 1; background: white; border: 1px solid #ddd; border-radius: 10px; padding: 20px; text-align: center; }
+        .metric-card .number { font-size: 36px; font-weight: bold; color: #4a90e2; }
         .metric-card.late .number { color: #e74c3c; }
-        .metric-card .label {
-            font-size: 13px;
-            color: #666;
-            margin-top: 6px;
-        }
-
-        /* ── Boutons de navigation ── */
-        .nav-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
-
-        .assign  { background: green;  color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; }
-        .assign:hover  { background: darkgreen; }
-
-        .task    { background: orange; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; }
-        .task:hover    { background: darkorange; }
-
-        .member  { background: blue;   color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; }
-        .member:hover  { background: darkblue; }
-
-        .filter  { background: purple; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; }
-        .filter:hover  { background: rgb(139,36,139); }
-
-        .projet  { background: teal;   color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; }
-        .projet:hover  { background: darkcyan; }
+        .task-list { margin-top: 30px; border-top: 1px solid #ccc; padding-top: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #4a90e2; color: white; }
+        .status-select { padding: 5px; border-radius: 4px; }
+        .nav-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+        .nav-buttons a button { padding: 10px; background: #4a90e2; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .notif-btn { position: relative; background: none; border: none; font-size: 22px; cursor: pointer; }
+        .notif-badge { position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: none; align-items: center; justify-content: center; }
+        #notif-panel { display: none; position: absolute; right: 20px; background: white; border: 1px solid #ddd; width: 280px; max-height: 300px; overflow-y: auto; z-index: 100; }
+        .notif-item { padding: 8px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .notif-item.unread { background: #eef4ff; font-weight: bold; }
     </style>
 </head>
 <body>
-
-    <!-- Barre utilisateur -->
     <div class="user-info">
         <span id="userName"></span>
-
-        <div style="display:flex; align-items:center; gap:10px; position:relative;">
-            <!-- Cloche notifications -->
-            <button class="notif-btn" onclick="toggleNotifPanel()" title="Notifications">
-                🔔
-                <span class="notif-badge" id="notif-badge"></span>
-            </button>
-
+        <div style="position:relative;">
+            <button class="notif-btn" onclick="toggleNotifPanel()">🔔<span id="notif-badge" class="notif-badge"></span></button>
             <button class="logout-btn" id="logoutBtn">Déconnexion</button>
         </div>
     </div>
-
-    <!-- Panneau notifications -->
-    <div id="notif-panel">
-        <div id="notif-list"><div class="notif-empty">Aucune notification</div></div>
+    <div id="notif-panel"><div id="notif-list">Chargement...</div></div>
+    
+    <h1>Tableau de bord</h1>
+    <div class="metrics">
+        <div class="metric-card"><div class="number" id="m-active">—</div><div class="label">Projets actifs</div></div>
+        <div class="metric-card"><div class="number" id="m-assigned">—</div><div class="label">Tâches assignées</div></div>
+        <div class="metric-card"><div class="number" id="m-done">—</div><div class="label">Tâches terminées</div></div>
+        <div class="metric-card late"><div class="number" id="m-late">—</div><div class="label">Tâches en retard</div></div>
     </div>
 
-    <h1>Tableau de bord</h1>
-
-    <!-- Fonctionnalité 5 : métriques chargées via GET /api/dashboard -->
-    <div class="metrics">
-        <div class="metric-card">
-            <div class="number" id="m-active">—</div>
-            <div class="label">Projets actifs</div>
-        </div>
-        <div class="metric-card">
-            <div class="number" id="m-assigned">—</div>
-            <div class="label">Tâches assignées</div>
-        </div>
-        <div class="metric-card">
-            <div class="number" id="m-done">—</div>
-            <div class="label">Tâches terminées</div>
-        </div>
-        <div class="metric-card late">
-            <div class="number" id="m-late">—</div>
-            <div class="label">Tâches en retard</div>
-        </div>
+    <div class="task-list">
+        <h2>📋 Mes tâches assignées</h2>
+        <table id="myTasksTable">
+            <thead><tr><th>Titre</th><th>Projet</th><th>Priorité</th><th>Statut</th><th>Date limite</th><th>Action</th></tr></thead>
+            <tbody id="myTasksBody"></tbody>
+        </table>
     </div>
 
     <div class="nav-buttons">
-        <a href="index.html">
-            <button class="assign">Assigner une tâche</button>
-        </a>
-        <a href="tasks.html">
-            <button class="task">Gestion des tâches</button>
-        </a>
-        <a href="members.html">
-            <button class="member">Gérer les membres</button>
-        </a>
-        <a href="filter.html">
-            <button class="filter">Filtrer les tâches</button>
-        </a>
-        <a href="projects.html">
-            <button class="projet">Créer un projet</button>
-        </a>
+        <a href="projects.html"><button>📁 Projets</button></a>
+        <a href="tasks.html"><button>✅ Tâches</button></a>
+        <a href="index.html"><button>👥 Assigner</button></a>
+        <a href="members.html"><button>👤 Membres</button></a>
+        <a href="filter.html"><button>🔍 Filtrer</button></a>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
-
         const token = localStorage.getItem('token');
-        const user  = JSON.parse(localStorage.getItem('user') || '{}');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-        if (!token) {
-            window.location.href = 'login.html';
-        }
+        if (!token) window.location.href = 'login.html';
+        axios.defaults.headers.common['Authorization'] = 'Bearer ' + token;
+        
+        document.getElementById('userName').innerHTML = '👋 ' + (user.fullName || 'Utilisateur');
+        document.getElementById('logoutBtn').onclick = () => { localStorage.clear(); window.location.href = 'login.html'; };
 
-        document.getElementById('userName').innerHTML =
-            '👋 Bonjour ' + (user.fullName || 'Utilisateur');
-
-        // Intercepteur Axios : ajoute le token automatiquement
-        axios.interceptors.request.use(function(config) {
-            const t = localStorage.getItem('token');
-            if (t) config.headers.Authorization = 'Bearer ' + t;
-            return config;
-        });
-
-        // Déconnexion
-        document.getElementById('logoutBtn').addEventListener('click', function() {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = 'login.html';
-        });
-
-        // ── Fonctionnalité 5 : Tableau de bord — un seul appel Axios ────────
         async function loadDashboard() {
             try {
-                // FIX: URL relative (pas de localhost hard-codé)
                 const res = await axios.get('/api/dashboard');
-                const d   = res.data;
-
-                document.getElementById('m-active').innerText   = d.activeProjects   ?? '0';
-                document.getElementById('m-assigned').innerText = d.assignedTasks     ?? '0';
-                document.getElementById('m-done').innerText     = d.completedTasks    ?? '0';
-                document.getElementById('m-late').innerText     = d.lateTasks         ?? '0';
-
-            } catch (error) {
-                if (error.response?.status === 401) {
-                    localStorage.removeItem('token');
-                    window.location.href = 'login.html';
-                }
+                const d = res.data;
+                document.getElementById('m-active').innerText = d.activeProjects ?? 0;
+                document.getElementById('m-assigned').innerText = d.assignedTasks ?? 0;
+                document.getElementById('m-done').innerText = d.completedTasks ?? 0;
+                document.getElementById('m-late').innerText = d.lateTasks ?? 0;
+            } catch (err) {
+                console.error(err);
             }
         }
 
-        // ── Fonctionnalité 10 : Notifications ────────────────────────────────
+        async function loadMyTasks() {
+            try {
+                const res = await axios.get('/api/tasks', { params: { assignedTo: user.id } });
+                let tasks = res.data;
+                if (!Array.isArray(tasks)) tasks = [];
+                
+                const priorityOrder = { haute: 1, moyenne: 2, basse: 3 };
+                tasks.sort((a,b) => {
+                    if (priorityOrder[a.priority] !== priorityOrder[b.priority]) return priorityOrder[a.priority] - priorityOrder[b.priority];
+                    return new Date(a.dueDate) - new Date(b.dueDate);
+                });
 
-        // Notifications lues archivées dans le localStorage
-        function getArchivedIds() {
-            return JSON.parse(localStorage.getItem('read_notif_ids') || '[]');
-        }
-        function archiveNotif(id) {
-            const ids = getArchivedIds();
-            if (!ids.includes(id)) { ids.push(id); localStorage.setItem('read_notif_ids', JSON.stringify(ids)); }
+                const tbody = document.getElementById('myTasksBody');
+                tbody.innerHTML = '';
+                
+                if (tasks.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6">Aucune tâche assignée</td></tr>';
+                    return;
+                }
+
+                for (const task of tasks) {
+                    let projectName = '';
+                    try {
+                        const pRes = await axios.get(`/api/projects/${task.projectId}`);
+                        projectName = pRes.data.projectName;
+                    } catch(e) { projectName = 'Inconnu'; }
+                    
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${task.title}</td>
+                            <td>${projectName}</td>
+                            <td>${task.priority}</td>
+                            <td>
+                                <select class="status-select" data-id="${task._id}" onchange="updateMyTaskStatus('${task._id}', this.value)">
+                                    <option value="à faire" ${task.status === 'à faire' ? 'selected' : ''}>À faire</option>
+                                    <option value="en cours" ${task.status === 'en cours' ? 'selected' : ''}>En cours</option>
+                                    <option value="terminé" ${task.status === 'terminé' ? 'selected' : ''}>Terminé</option>
+                                </select>
+                            </td>
+                            <td>${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '-'}</td>
+                            <td><button onclick="loadMyTasks()">🔄</button></td>
+                        </tr>
+                    `;
+                }
+            } catch (err) {
+                console.error(err);
+            }
         }
 
-        let notifData = [];
+        async function updateMyTaskStatus(taskId, newStatus) {
+            try {
+                await axios.patch(`/api/tasks/${taskId}/status`, { status: newStatus });
+                loadMyTasks();
+                loadDashboard();
+            } catch (err) {
+                alert('Erreur');
+                loadMyTasks();
+            }
+        }
 
         async function loadNotifications() {
             try {
-                // FIX: URL relative + lire res.data.data (format du controller)
-                const res    = await axios.get('/api/notifications');
-                notifData    = res.data.data || res.data || [];
-                const archivedIds = getArchivedIds();
-
-                const unread = notifData.filter(function(n) {
-                    return !n.read && !archivedIds.includes(n._id);
-                });
-
-                // Badge
+                const res = await axios.get('/api/notifications');
+                notifData = res.data.data || [];
+                const unread = notifData.filter(n => !n.read);
                 const badge = document.getElementById('notif-badge');
-                if (unread.length > 0) {
-                    badge.innerText       = unread.length;
-                    badge.style.display   = 'flex';
-                } else {
-                    badge.style.display   = 'none';
-                }
-
-                // Remplir le panneau
+                if (unread.length) {
+                    badge.innerText = unread.length;
+                    badge.style.display = 'flex';
+                } else badge.style.display = 'none';
+                
                 const list = document.getElementById('notif-list');
-                if (notifData.length === 0) {
-                    list.innerHTML = '<div class="notif-empty">Aucune notification</div>';
-                } else {
+                if (notifData.length === 0) list.innerHTML = '<div>Aucune notification</div>';
+                else {
                     list.innerHTML = '';
-                    notifData.forEach(function(n) {
-                        const isRead = n.read || archivedIds.includes(n._id);
-                        list.innerHTML +=
-                            '<div class="notif-item ' + (isRead ? '' : 'unread') + '" onclick="markRead(\'' + n._id + '\')">' +
-                            n.message +
-                            '</div>';
+                    notifData.forEach(n => {
+                        list.innerHTML += `<div class="notif-item ${!n.read ? 'unread' : ''}" onclick="markRead('${n._id}')">${n.message}</div>`;
                     });
                 }
-
-            } catch (err) {
-                // silencieux si la route échoue
-            }
+            } catch(e) { console.error(e); }
         }
 
-        async function markRead(notifId) {
+        async function markRead(id) {
             try {
-                // FIX: URL relative
-                await axios.patch('/api/notifications/' + notifId + '/read');
-                archiveNotif(notifId);
+                await axios.patch(`/api/notifications/${id}/read`);
                 loadNotifications();
-            } catch (err) {
-                archiveNotif(notifId);
-                loadNotifications();
-            }
+            } catch(e) {}
         }
 
         function toggleNotifPanel() {
-            const panel = document.getElementById('notif-panel');
-            panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
+            const p = document.getElementById('notif-panel');
+            p.style.display = p.style.display === 'block' ? 'none' : 'block';
         }
 
-        // Fermer le panneau en cliquant ailleurs
-        document.addEventListener('click', function(e) {
-            const panel = document.getElementById('notif-panel');
-            if (!e.target.closest('.notif-btn') && !e.target.closest('#notif-panel')) {
-                panel.style.display = 'none';
-            }
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.notif-btn') && !e.target.closest('#notif-panel')) document.getElementById('notif-panel').style.display = 'none';
         });
 
-        // Chargement initial
         loadDashboard();
+        loadMyTasks();
         loadNotifications();
-
-        // Polling toutes les 30 secondes (Fonctionnalité 10)
         setInterval(loadNotifications, 30000);
-        document.getElementById('deadline').min = new Date().toISOString().split("T")[0];
     </script>
 </body>
 </html>
-
+</file>
